@@ -84,7 +84,7 @@ async function yDaily(sym) {
 }
 async function yScreen(id) {
   const d = await yget(`/v1/finance/screener/predefined/saved?scrIds=${id}&count=100`);
-  return (d?.finance?.result?.[0]?.quotes || []).map(q => ({ sym: q.symbol, price: q.regularMarketPrice, vol: q.regularMarketVolume, chg: q.regularMarketChangePercent }));
+  return (d?.finance?.result?.[0]?.quotes || []).map(q => ({ sym: q.symbol, price: q.regularMarketPrice, vol: q.regularMarketVolume, chg: q.regularMarketChangePercent, exch: q.exchange, delay: q.exchangeDataDelayedBy, type: q.quoteType }));
 }
 
 /* ---------------- данни: Alpaca IEX в реално време (резерва) ---------------- */
@@ -106,12 +106,23 @@ async function alpacaIntraday(syms, startMs) {
 
 /* ---------------- избор на акции за деня ---------------- */
 const okSym = s => /^[A-Z]{1,5}$/.test(s || '');
+const OTC = new Set(['PNK', 'OQB', 'OQX', 'OBB', 'OTC', 'OEM', 'GREY']);
+// По желание: Finnhub (безплатен ключ на finnhub.io → FINNHUB_KEY във Vercel) — последната цена в реално време
+const FINNHUB = process.env.FINNHUB_KEY || '';
+async function liveQuotes(st, syms, nowMs) {
+  if (!FINNHUB || !syms.length) return;
+  if (st.fhAt && nowMs - st.fhAt < 15000) return; st.fhAt = nowMs; st.live = st.live || {};
+  const res = await Promise.allSettled(syms.slice(0, 25).map(s => fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(s)}&token=${FINNHUB}`).then(r => r.ok ? r.json() : null)));
+  res.forEach((r, k) => { const q = r.status === 'fulfilled' && r.value; if (q && q.c > 0 && q.t) st.live[syms[k]] = { px: q.c, t: q.t * 1000 }; });
+}
 async function pickUniverse() {
   const score = new Map();
   for (const [id, w] of [['small_cap_gainers', 3], ['day_gainers', 2], ['most_actives', 2]]) {
     try {
       for (const q of await yScreen(id)) {
         if (!okSym(q.sym) || !(q.price >= PRICE_MIN && q.price <= PRICE_MAX) || !(q.vol > 300000)) continue;
+        // само акции с цени на живо: без OTC (там Yahoo е с 15 мин закъснение) и без закъснели борси
+        if (OTC.has(q.exch) || (q.delay != null && q.delay > 0) || (q.type && q.type !== 'EQUITY')) continue;
         score.set(q.sym, (score.get(q.sym) || 0) + w + Math.min(3, (q.chg || 0) / 15) + Math.min(2, (q.vol || 0) / 2e7));
       }
     } catch (e) { console.error('screener', id, e.message); }
@@ -584,7 +595,16 @@ async function tick(nowMs = Date.now()) {
     }
     st.lastBar = t;
   }
-  for (const [s, arr0] of Object.entries(bars)) { const lb = arr0[arr0.length - 1]; if (lb && lb.t >= start && lb.t < end + 60000 && !isHalted(st, s, nowMs)) st.prices[s] = lb.c; }
+  // най-новата цена за екрана: последната (още незавършена) минута от Yahoo или Finnhub, ако е по-нова
+  await liveQuotes(st, st.universe, nowMs).catch(() => {});
+  let newest = 0;
+  for (const [s, arr0] of Object.entries(bars)) {
+    const lb = arr0[arr0.length - 1]; if (!lb || lb.t < start || lb.t >= end + 60000 || isHalted(st, s, nowMs)) continue;
+    let px = lb.c, pt = lb.t + 30000; const L = st.live && st.live[s];
+    if (L && L.t > pt && nowMs - L.t < 5 * 60000) { px = L.px; pt = L.t; }
+    st.prices[s] = px; newest = Math.max(newest, pt);
+  }
+  st.dataT = newest || st.dataT; st.srcLive = FINNHUB ? 'yahoo+finnhub' : 'yahoo';
   st.ticker = st.universe.map(s => { const px = st.prices[s]; const pc = st.daily?.[s]?.pdc || IND[s]?.ctx?.pdc; return px ? { s, px, chg: pc ? round2((px / pc - 1) * 100) : null, halt: isHalted(st, s, nowMs) || undefined } : null; }).filter(Boolean);
   for (const b of st.bots) { b.hist.push([nowMs, round2(equity(b, st.prices))]); if (b.hist.length > 420) b.hist = b.hist.filter((_, i) => i % 2 === 0); }
   // парите на целия отбор от началото (вкл. уволнените) — за графиката 1Ч / 1Д / 1С / Всичко
@@ -635,7 +655,7 @@ function view(st, nowMs = Date.now()) {
       trades: b.trades.slice(0, 25), fees: round2(b.fees || 0), hold: b.genome.hold, maxPos: b.genome.maxPos,
     };
   }).sort((a, b) => b.today - a.today || b.total - a.total);
-  return { status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, ddFire: DD_FIRE, loserTrades: LOSER_TRADES, startCash: START_CASH, ticker: st.ticker || [],
+  return { dataT: st.dataT || null, srcLive: st.srcLive || 'yahoo', status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, ddFire: DD_FIRE, loserTrades: LOSER_TRADES, startCash: START_CASH, ticker: st.ticker || [],
     stats: Object.entries(st.stats || {}).map(([k, x]) => ({ k, ...x, style: STYLE[k] || x.style, tech: TECH[k], winRate: x.trades ? Math.round(x.wins / x.trades * 100) : null, avgPct: x.trades ? round2(x.pctSum / x.trades) : null, avgMin: x.trades ? Math.round(x.minutes / x.trades) : null })).sort((a, b) => b.pnl - a.pnl),
     session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40).map(f => { const k = Object.keys(TECH).find(q => TECH[q] === f.style || STYLE[q] === f.style); const out = k ? { ...f, style: STYLE[k], strat: k } : { ...f }; if (f.genome) out.desc = describe(f.genome); delete out.genome; return out; }), firedToday: st.firedToday || 0, firedDayPnl: st.firedDayPnl || 0, teamHist: st.teamHist || [], feesAll: st.feesAll || 0, feesDay: st.feesDay || 0, dayClosed: st.dayClosed || 0, dayWins: st.dayWins || 0, dayHist: st.dayHist || [],
     records: (() => { const R = { ...(st.records || {}) }; const ss = st.session && st.session.start || 0;
