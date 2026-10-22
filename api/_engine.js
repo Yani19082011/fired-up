@@ -168,8 +168,10 @@ const FILTERS = {
   vol_confirm: () => ({ k: R([1.5, 2]) }),
   green_streak: () => ({ k: R([2, 3]) }),
 };
-function newGenome() {
-  const trig = R(TRIGGER_POOL);
+function newGenome(avoid = []) {
+  // всеки трейдър в отбора е с различна стратегия; ако може — и не същата като току-що уволнения
+  const free = TRIGGER_POOL.filter(t => !avoid.includes(t));
+  const trig = R(free.length ? free : TRIGGER_POOL);
   const fkeys = Object.keys(FILTERS).sort(() => Math.random() - 0.5).slice(0, R([0, 1, 1, 2]));
   const atrStop = Math.random() < 0.4;
   return {
@@ -269,8 +271,10 @@ const NAMES = {
 };
 const ALT = ['Бай Ганьо', 'Акулата', 'Вълчо', 'Професора', 'Лудата Лили', 'Баба Пена', 'Кирчо Котангенса', 'Ники Никела', 'Сладкия Стоп', 'Митко Мечката', 'Буля Бичка', 'Цецо Свещта', 'Жоро Ракетата', 'Пенчо Пени'];
 const COLORS = ['#F2B544', '#5BC0EB', '#E86A92', '#7BD389', '#B794F6', '#FF8A5B', '#4FD1C5', '#F6E05E', '#90CDF4', '#FBB6CE'];
-function hire(st, t) {
-  const g = newGenome();
+function hire(st, t, also = []) {
+  const taken = st.bots.map(b => b.genome.trigger.t);
+  const free = TRIGGER_POOL.filter(k => !taken.includes(k));
+  const g = newGenome(free.some(k => !also.includes(k)) ? [...taken, ...also] : taken);
   st.nameSeq = (st.nameSeq || 0) + 1;
   const used = new Set([...st.bots.map(b => b.name), ...(st.fired || []).map(f => f.name)]);
   const own = (NAMES[g.trigger.t] || []).filter(n => !used.has(n)), alt = ALT.filter(n => !used.has(n));
@@ -287,6 +291,28 @@ function hire(st, t) {
   (st.stats[k] = st.stats[k] || { style: bot.style, trades: 0, wins: 0, pnl: 0, pctSum: 0, best: 0, worst: 0, hired: 0, fired: 0, minutes: 0 }).hired++;
   bot.peakEq = START_CASH;
   return bot;
+}
+
+function dedupe(st, t) {
+  const seen = new Set();
+  for (const bot of [...st.bots].sort((a, b) => (b.wins + b.losses) - (a.wins + a.losses) || a.hiredAt - b.hiredAt)) {
+    const k = bot.genome.trigger.t;
+    if (!seen.has(k)) { seen.add(k); continue; }
+    if (bot.positions.length) continue; // ще го смени, като затвори сделката
+    const taken = st.bots.map(b => b.genome.trigger.t);
+    const g = newGenome(taken); const nk = g.trigger.t;
+    if (taken.includes(nk)) continue;
+    const used = new Set([...st.bots.map(b => b.name), ...(st.fired || []).map(f => f.name)]);
+    const own = (NAMES[nk] || []).filter(n => !used.has(n));
+    const oldName = bot.name, rename = (NAMES[k] || []).includes(oldName) && own.length;
+    if (rename) bot.name = R(own);
+    bot.genome = g; bot.style = STYLE[nk]; bot.desc = describe(g);
+    st.stats = st.stats || {};
+    if (st.stats[k] && st.stats[k].hired > 0) st.stats[k].hired--;
+    (st.stats[nk] = st.stats[nk] || { style: bot.style, trades: 0, wins: 0, pnl: 0, pctSum: 0, best: 0, worst: 0, hired: 0, fired: 0, minutes: 0 }).hired++;
+    seen.add(nk);
+    feed(st, t, bot.id, 'info', `${oldName} сменя стратегията, за да няма двама с еднаква: ${rename ? 'вече е ' + bot.name + ', ' : ''}${bot.style}. ${bot.desc.buy}`);
+  }
 }
 
 /* ---------------- търговия ---------------- */
@@ -333,7 +359,7 @@ function fire(st, bot, t, prices, why = 'streak') {
   st.fired = st.fired.slice(0, 60);
   st.firedToday = (st.firedToday || 0) + 1;
   st.bots = st.bots.filter(b => b !== bot);
-  const nb = hire(st, t);
+  const nb = hire(st, t, [k]);
   feed(st, t, bot.id, 'fired', `${bot.name} е УВОЛНЕН ${FIRE_TXT[why]()} (${eq - START_CASH >= 0 ? '+' : ''}${money(eq - START_CASH)} общо).`);
   feed(st, t, nb.id, 'hired', `Нов трейдър: ${nb.name} (${nb.style}). ${nb.desc.buy}`);
 }
@@ -359,6 +385,7 @@ async function tick(nowMs = Date.now()) {
   if (!st) { st = { bots: [], fired: [], feed: [], day: null, universe: [], prices: {}, lastBar: 0, created: nowMs, daily: {} }; for (let i = 0; i < N_BOTS; i++) hire(st, nowMs); feed(st, nowMs, null, 'info', `Състезанието започва! ${N_BOTS} трейдъри, по $10 000 фалшиви пари, истински цени.`); }
   st.lastTick = nowMs; st.simMs = nowMs;
   if (st.bots.length < N_BOTS) { const add = N_BOTS - st.bots.length; const names = []; for (let i = 0; i < add; i++) names.push(hire(st, nowMs).name); feed(st, nowMs, null, 'hired', `Отборът расте! Назначени са ${add} нови трейдъри: ${names.join(', ')}.`); }
+  dedupe(st, nowMs);
   const et = etParts(nowMs);
 
   // сесията за деня (и почивните дни) от Yahoo — по водещата акция SPY
@@ -509,4 +536,4 @@ async function tickWithLock(nowMs = Date.now(), minGapMs = 50000) {
   finally { await kv(['DEL', 'arena:lock']); }
 }
 
-module.exports = { tick, tickWithLock, loadState, view, kv, _test: { newGenome, describe, indic, sig, etParts, TRIGGERS } };
+module.exports = { tick, tickWithLock, loadState, view, kv, _test: { dedupe, newGenome, describe, indic, sig, etParts, TRIGGERS } };
