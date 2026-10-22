@@ -1,5 +1,6 @@
 // Fired Up — двигателят на състезанието.
-// 5 бота търгуват penny stocks с фалшиви $10 000. Две поредни загуби = уволнение и нов бот с друга стратегия.
+// 10 бота търгуват penny stocks с фалшиви $10 000 — но като с истински пари: поръчка се изпълнява на следващата минута,
+// плаща се спред и такси на брокера, не се купува повече, отколкото пазарът реално търгува. Уволнение по 3 правила.
 // Данни в реално време: Yahoo Finance (минутни свещи с обем, без ключ). Ако Yahoo откаже —
 // Alpaca IEX в реално време (нужни ALPACA_KEY_ID / ALPACA_SECRET_KEY, по желание).
 // Нужно във Vercel: свързана Upstash памет (KV_REST_API_URL / KV_REST_API_TOKEN).
@@ -9,6 +10,15 @@ const SLIP = 0.002;          // 0,2% приплъзване при покупк�
 const SLIP_PRE = 0.005;      // 0,5% в премаркета — спредовете тогава са много по-широки
 let REG_START = 0;           // кога е истинското отваряне днес (9:30 НЙ)
 const slipAt = t => (REG_START && t < REG_START ? SLIP_PRE : SLIP);
+// половината спред: поне 0,2% (0,5% в премаркета), но и поне половин цент — при $1–5 акции котировката е през $0,01
+function halfSpread(px, t) { const pre = REG_START && t < REG_START; return Math.max(pre ? SLIP_PRE : SLIP, (px >= 1 ? (pre ? 0.01 : 0.005) : (pre ? 0.001 : 0.0005)) / px); }
+// такси като при Interactive Brokers (IBKR Pro Fixed): $0,005 на акция, мин. $1, макс. 1% от сделката
+const COMM_SH = 0.005, COMM_MIN = 1, COMM_MAX = 0.01;
+// при продажба и регулаторните такси в САЩ: SEC $20,60 на $1 млн. (от 04.04.2026) и FINRA TAF $0,000166 на акция (макс. $8,30)
+const SEC_FEE = 20.6 / 1e6, TAF_SH = 0.000166, TAF_MAX = 8.3;
+const LIQ_SHARE = 0.1;      // не купува повече от 10% от средния минутен обем — иначе сам би вдигнал цената
+const commission = (q, px) => Math.min(Math.max(q * COMM_SH, COMM_MIN), q * px * COMM_MAX);
+const sellFees = (q, px) => q * px * SEC_FEE + Math.min(q * TAF_SH, TAF_MAX);
 const N_BOTS = Number(process.env.N_BOTS || 10);
 const STRIKES_TO_FIRE = Number(process.env.STRIKES_TO_FIRE || 3);   // правило 1: поредни загуби
 const DD_FIRE = Number(process.env.DD_FIRE || 5);                   // правило 2: % просадка от най-високия капитал
@@ -317,19 +327,22 @@ function dedupe(st, t) {
 
 /* ---------------- търговия ---------------- */
 const round2 = n => Math.round(n * 100) / 100;
-function equity(bot, prices) { return bot.cash + bot.positions.reduce((s, p) => s + p.qty * (prices[p.sym] ?? p.entry), 0); }
+const round4 = n => Math.round(n * 10000) / 10000;
+function liqValue(p, px) { const bid = px * (1 - Math.max(SLIP, (px >= 1 ? 0.005 : 0.0005) / px)); return p.qty * bid - commission(p.qty, bid) - sellFees(p.qty, bid); }
+function equity(bot, prices) { return bot.cash + bot.positions.reduce((s, p) => s + liqValue(p, prices[p.sym] ?? p.entry), 0); }
 function feed(st, t, botId, kind, text) { st.feed.unshift({ t, b: botId, k: kind, x: text }); st.feed = st.feed.slice(0, 120); }
 const money = n => (n < 0 ? '−$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const qtyF = n => n.toLocaleString('bg-BG');
 const pxF = n => '$' + n.toFixed(n < 1 ? 4 : 2);
 
-function closePos(st, bot, p, price, t, reason) {
-  const px = price * (1 - slipAt(t));
-  const pnl = (px - p.entry) * p.qty;
-  bot.cash += p.qty * px;
+function closePos(st, bot, p, price, t, reason, limit = false) {
+  const px = limit ? price : price * (1 - halfSpread(price, t)); // лимитната поръчка (целта) се изпълнява точно на цената си
+  const fees = commission(p.qty, px) + sellFees(p.qty, px);
+  const pnl = (px - p.entry) * p.qty - (p.feeIn || 0) - fees;
+  bot.cash += p.qty * px - fees;
   bot.positions = bot.positions.filter(x => x !== p);
-  const pct = (px / p.entry - 1) * 100;
-  bot.trades.unshift({ sym: p.sym, qty: p.qty, entry: p.entry, exit: Math.round(px * 10000) / 10000, pnl: round2(pnl), pct: round2(pct), in: p.t, out: t, why: reason });
+  const pct = pnl / (p.entry * p.qty) * 100;
+  bot.trades.unshift({ sym: p.sym, qty: p.qty, entry: p.entry, exit: Math.round(px * 10000) / 10000, pnl: round2(pnl), pct: round2(pct), in: p.t, out: t, why: reason, fees: round2((p.feeIn || 0) + fees), stop: p.stop0, tp: p.tp });
   bot.trades = bot.trades.slice(0, 40);
   bot.realized = round2(bot.realized + pnl);
   const WHY = { tp: 'целта', sl: 'стопа', be: 'стопа на входа', trail: 'плъзгащия стоп', time: 'времето', rsi: 'RSI над 80', vwap: 'пада под VWAP', eod: 'края на деня', fired: 'уволнението' };
@@ -358,6 +371,8 @@ function fire(st, bot, t, prices, why = 'streak') {
   st.fired.unshift({ id: bot.id, name: bot.name, color: bot.color, style: bot.style, desc: bot.desc, hiredAt: bot.hiredAt, firedAt: t, trades: bot.wins + bot.losses, wins: bot.wins, losses: bot.losses, pnl: round2(eq - START_CASH), gen: bot.gen, why: FIRE_TXT[why]() });
   st.fired = st.fired.slice(0, 60);
   st.firedToday = (st.firedToday || 0) + 1;
+  st.firedAllPnl = round2((st.firedAllPnl || 0) + (eq - START_CASH)); // и от началото на състезанието — уволнението не трие загубата
+  st.firedDayPnl = round2((st.firedDayPnl || 0) + (eq - (bot.dayStart ?? START_CASH))); // загубата/печалбата му днес остава в сметката на отбора
   st.bots = st.bots.filter(b => b !== bot);
   const nb = hire(st, t, [k]);
   feed(st, t, bot.id, 'fired', `${bot.name} е УВОЛНЕН ${FIRE_TXT[why]()} (${eq - START_CASH >= 0 ? '+' : ''}${money(eq - START_CASH)} общо).`);
@@ -386,6 +401,9 @@ async function tick(nowMs = Date.now()) {
   st.lastTick = nowMs; st.simMs = nowMs;
   if (st.bots.length < N_BOTS) { const add = N_BOTS - st.bots.length; const names = []; for (let i = 0; i < add; i++) names.push(hire(st, nowMs).name); feed(st, nowMs, null, 'hired', `Отборът расте! Назначени са ${add} нови трейдъри: ${names.join(', ')}.`); }
   dedupe(st, nowMs);
+  // еднократно: уволнените по-рано днес (преди тази версия) също влизат в сметката на отбора
+  if (st.firedAllPnl === undefined) st.firedAllPnl = round2((st.fired || []).reduce((a, f) => a + f.pnl, 0));
+  if (st.firedDayPnl === undefined) st.firedDayPnl = round2((st.fired || []).filter(f => st.day && etParts(f.firedAt).date === st.day && etParts(f.hiredAt).date === st.day).reduce((a, f) => a + f.pnl, 0));
   const et = etParts(nowMs);
 
   // сесията за деня (и почивните дни) от Yahoo — по водещата акция SPY
@@ -397,8 +415,8 @@ async function tick(nowMs = Date.now()) {
       for (const off of [4, 5]) { const s = Date.parse(`${et.date}T09:30:00Z`) + off * 3600e3; if (etParts(s).min === 570) { session = { start: s - 330 * 60000, regStart: s, end: s + 390 * 60000, guess: true }; break; } }
     }
     if (st.day !== et.date) {
-      st.day = et.date; st.universe = []; st.lastBar = 0; st.firedToday = 0; st.dayTrades = 0; st.daily = {}; st.dayDone = null;
-      for (const b of st.bots) { b.dayStart = round2(equity(b, st.prices)); b.hist = [[nowMs, b.dayStart]]; }
+      st.day = et.date; st.universe = []; st.lastBar = 0; st.firedToday = 0; st.firedDayPnl = 0; st.dayTrades = 0; st.daily = {}; st.dayDone = null;
+      for (const b of st.bots) { b.pending = null; b.dayStart = round2(equity(b, st.prices)); b.hist = [[nowMs, b.dayStart]]; }
     }
     st.session = session && etParts(session.start).date === et.date ? session : null;
     st.sessionChecked = nowMs;
@@ -447,26 +465,56 @@ async function tick(nowMs = Date.now()) {
       let bot = st.bots[bi];
       if (bot.hiredAt >= t) continue; // новоназначеният започва от следващата минута
       const g = bot.genome;
+      // 1) поръчката от предишната минута се изпълнява на отварянето на тази (като в истински живот: виждаш сигнала, после купуваш)
+      if (bot.pending) {
+        const q = bot.pending, I = IND[q.s], i = I && idx[q.s].get(t);
+        if (t >= eodAt || t - q.t > 3 * 60000) { bot.pending = null; if (t < eodAt) feed(st, t, bot.id, 'info', `${bot.name} отказа поръчката за ${q.s} — 3 минути никой не продаде на неговата цена.`); }
+        else if (i != null && t > q.t) {
+          bot.pending = null;
+          const o = I.o[i], fill = o * (1 + halfSpread(o, t));
+          if (fill > q.limit) feed(st, t, bot.id, 'info', `${bot.name} не успя да купи ${q.s}: цената отвори на ${pxF(o)}, над лимита му ${pxF(q.limit)}.`);
+          else {
+            const eq = equity(bot, st.prices);
+            let qty = Math.floor(Math.min(bot.cash - COMM_MIN, eq * g.size) / fill);
+            qty = Math.min(qty, Math.floor(q.liq));
+            while (qty > 0 && qty * fill + commission(qty, fill) > bot.cash) qty--;
+            if (qty >= 1 && qty * fill >= 50) {
+              const fee = commission(qty, fill);
+              const stop = Math.max(0.0001, g.atr ? Math.min(fill * 0.99, fill - g.atr * q.atr) : fill * (1 - g.sl / 100));
+              bot.cash -= qty * fill + fee;
+              bot.positions.push({ sym: q.s, qty, entry: fill, t, peak: fill, stop, stop0: round4(stop), tp: round4(fill * (1 + g.tp / 100)), feeIn: round2(fee) });
+              st.dayTrades = (st.dayTrades || 0) + 1;
+              feed(st, t, bot.id, 'buy', `${bot.name} купи ${qtyF(qty)} ${q.s} по ${pxF(fill)} (${money(qty * fill)} + такса ${money(fee)}).`);
+            } else if (q.liq < 1 || qty < 1) feed(st, t, bot.id, 'info', `${bot.name} пропусна ${q.s} — твърде малко се търгува, за да влезе с реална сума.`);
+          }
+        }
+      }
+      // 2) излизане
       for (const p of [...bot.positions]) {
         const I = IND[p.sym]; const i = I && idx[p.sym].get(t);
         if (i == null) { if (t >= eodAt) closePos(st, bot, p, st.prices[p.sym] ?? p.entry, t, 'eod'); continue; }
-        const hi = I.h[i], lo = I.l[i], c = I.c[i];
-        p.peak = Math.max(p.peak || p.entry, hi);
-        if (g.be && p.peak >= p.entry * (1 + g.be / 100)) p.stop = Math.max(p.stop, p.entry);
-        const trP = g.trail && p.peak > p.entry * 1.01 ? p.peak * (1 - g.trail / 100) : 0;
-        const tpP = p.entry * (1 + g.tp / 100);
-        if (t >= eodAt) closePos(st, bot, p, c, t, 'eod');
-        else if (lo <= p.stop) closePos(st, bot, p, Math.min(p.stop, I.o[i]), t, p.stop >= p.entry ? 'be' : 'sl');
-        else if (trP && lo <= trP) closePos(st, bot, p, trP, t, 'trail');
-        else if (hi >= tpP) closePos(st, bot, p, Math.max(tpP, I.o[i]), t, 'tp');
-        else if ((t - p.t) / 60000 >= g.hold) closePos(st, bot, p, c, t, 'time');
-        else if (g.rsiExit && I.rsi(14)[i] > 80) closePos(st, bot, p, c, t, 'rsi');
-        else if (g.vwapExit && c < I.vwap[i] && t - p.t > 3 * 60000) closePos(st, bot, p, c, t, 'vwap');
+        const o = I.o[i], hi = I.h[i], lo = I.l[i], c = I.c[i], pre = t < regStart;
+        if (p.exitAt && t > p.exitT) closePos(st, bot, p, o, t, p.exitAt); // решено на затварянето на миналата минута → продава на отварянето
+        else {
+          // нивата са от предишните минути — не знаем дали в минутата първо е бил върхът или дъното
+          if (g.be && p.peak >= p.entry * (1 + g.be / 100)) p.stop = Math.max(p.stop, p.entry);
+          const trP = g.trail && p.peak > p.entry * 1.01 ? p.peak * (1 - g.trail / 100) : 0;
+          const lvl = Math.max(p.stop, trP), why = trP > p.stop ? 'trail' : p.stop >= p.entry ? 'be' : 'sl';
+          const tpP = p.tp || p.entry * (1 + g.tp / 100);
+          if (t >= eodAt) closePos(st, bot, p, c, t, 'eod');
+          else if (!pre && lo <= lvl) closePos(st, bot, p, Math.min(lvl, o), t, why); // стоп поръчка: при гап се изпълнява по-ниско
+          else if (hi >= tpP) closePos(st, bot, p, Math.max(tpP, o), t, 'tp', true); // лимитна поръчка на целта
+          else if (pre && c <= lvl) { p.exitAt = why; p.exitT = t; } // в премаркета стоповете не се задействат сами — продава на следващата минута
+          else if ((t - p.t) / 60000 >= g.hold) { p.exitAt = 'time'; p.exitT = t; }
+          else if (g.rsiExit && I.rsi(14)[i] > 80) { p.exitAt = 'rsi'; p.exitT = t; }
+          else if (g.vwapExit && c < I.vwap[i] && t - p.t > 3 * 60000) { p.exitAt = 'vwap'; p.exitT = t; }
+          if (bot.positions.includes(p)) p.peak = Math.max(p.peak || p.entry, hi);
+        }
         if (bot.strikes >= STRIKES_TO_FIRE) { fire(st, bot, t, st.prices, 'streak'); bot = null; break; }
       }
       if (bot) { const why = fireReason(bot, st.prices); if (why) { fire(st, bot, t, st.prices, why); bot = null; } }
       if (!bot) { bi--; continue; } // уволненият е махнат; следващият бот се измества на същото място
-      if (t < entryFrom || t > entryTo || bot.positions.length >= g.maxPos) continue;
+      if (t < entryFrom || t > entryTo || bot.pending || bot.positions.length >= g.maxPos) continue;
       let best = null;
       for (const s in IND) {
         if (bot.positions.some(p => p.sym === s)) continue;
@@ -474,27 +522,17 @@ async function tick(nowMs = Date.now()) {
         const px = I.c[i]; if (px < PRICE_MIN * 0.8 || px > PRICE_MAX * 1.5) continue;
         if (!sig(g, I, i)) continue;
         const score = I.v[i] / (I.avgV[i - 1] || 1);
-        if (!best || score > best.score) best = { s, px, score, atr: I.atr[i] };
+        if (!best || score > best.score) best = { s, px, score, atr: I.atr[i], liq: LIQ_SHARE * Math.max(I.avgV[i] || 0, 1) };
       }
-      if (best) {
-        const eq = equity(bot, st.prices);
-        const fill = best.px * (1 + slipAt(t));
-        const qty = Math.floor(Math.min(bot.cash, eq * g.size) / fill);
-        if (qty >= 1 && qty * fill >= 50) {
-          const stop = g.atr ? Math.min(fill * 0.99, fill - g.atr * best.atr) : fill * (1 - g.sl / 100);
-          bot.cash -= qty * fill;
-          bot.positions.push({ sym: best.s, qty, entry: fill, t, peak: fill, stop: Math.max(0.0001, stop) });
-          st.dayTrades = (st.dayTrades || 0) + 1;
-          feed(st, t, bot.id, 'buy', `${bot.name} купи ${qtyF(qty)} ${best.s} по ${pxF(fill)} (${money(qty * fill)}).`);
-        }
-      }
+      // 3) сигнал на затварянето на минутата → лимитна поръчка за следващата (до +1%, в премаркета до +2%)
+      if (best) bot.pending = { s: best.s, t, px: best.px, limit: round4(best.px * (t < regStart ? 1.02 : 1.01)), atr: best.atr, liq: best.liq };
     }
     st.lastBar = t;
   }
   st.ticker = st.universe.map(s => { const px = st.prices[s]; const pc = st.daily?.[s]?.pdc || IND[s]?.ctx?.pdc; return px ? { s, px, chg: pc ? round2((px / pc - 1) * 100) : null } : null; }).filter(Boolean);
   for (const b of st.bots) { b.hist.push([nowMs, round2(equity(b, st.prices))]); if (b.hist.length > 420) b.hist = b.hist.filter((_, i) => i % 2 === 0); }
   if (nowMs >= end) {
-    for (const b of st.bots) for (const p of [...b.positions]) closePos(st, b, p, st.prices[p.sym] ?? p.entry, end, 'eod');
+    for (const b of st.bots) { b.pending = null; for (const p of [...b.positions]) closePos(st, b, p, st.prices[p.sym] ?? p.entry, end, 'eod'); }
     st.status = 'closed';
     if (st.dayDone !== st.day) {
       st.dayDone = st.day;
@@ -518,13 +556,16 @@ function view(st, nowMs = Date.now()) {
       strikes: b.strikes, wins: b.wins, losses: b.losses, cash: round2(b.cash), hist: b.hist,
       dd: round2(Math.max(0, ((Math.max(b.peakEq || START_CASH, eq) - eq) / Math.max(b.peakEq || START_CASH, eq)) * 100)),
       risk: Math.min(1, Math.max(b.strikes / STRIKES_TO_FIRE, ((Math.max(b.peakEq || START_CASH, eq) - eq) / Math.max(b.peakEq || START_CASH, eq)) * 100 / DD_FIRE, eq < START_CASH ? (b.wins + b.losses) / LOSER_TRADES : 0)),
-      positions: b.positions.map(p => ({ sym: p.sym, qty: p.qty, entry: p.entry, now: prices[p.sym] ?? p.entry, pnl: round2((prices[p.sym] ?? p.entry) * p.qty - p.entry * p.qty), t: p.t })),
+      positions: b.positions.map(p => { const g = b.genome, now = prices[p.sym] ?? p.entry; const trP = g.trail && p.peak > p.entry * 1.01 ? p.peak * (1 - g.trail / 100) : 0;
+        const pnl = round2(liqValue(p, now) - p.entry * p.qty - (p.feeIn || 0));
+        return { sym: p.sym, qty: p.qty, entry: p.entry, now, pnl, pct: round2(pnl / (p.entry * p.qty) * 100), t: p.t, stop: round4(Math.max(p.stop, trP)), tp: p.tp || round4(p.entry * (1 + g.tp / 100)), exiting: p.exitAt || null }; }),
+      pending: b.pending ? { s: b.pending.s, limit: b.pending.limit, t: b.pending.t } : null,
       trades: b.trades.slice(0, 25),
     };
   }).sort((a, b) => b.today - a.today || b.total - a.total);
   return { status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, ddFire: DD_FIRE, loserTrades: LOSER_TRADES, startCash: START_CASH, ticker: st.ticker || [],
     stats: Object.entries(st.stats || {}).map(([k, x]) => ({ k, ...x, winRate: x.trades ? Math.round(x.wins / x.trades * 100) : null, avgPct: x.trades ? round2(x.pctSum / x.trades) : null, avgMin: x.trades ? Math.round(x.minutes / x.trades) : null })).sort((a, b) => b.pnl - a.pnl),
-    session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40), firedToday: st.firedToday || 0, dayTrades: st.dayTrades || 0, serverNow: nowMs };
+    session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40), firedToday: st.firedToday || 0, firedDayPnl: st.firedDayPnl || 0, firedAllPnl: st.firedAllPnl || 0, teamTotal: round2(bots.reduce((a, b) => a + b.total, 0) + (st.firedAllPnl || 0)), teamToday: round2(bots.reduce((a, b) => a + b.today, 0) + (st.firedDayPnl || 0)), dayTrades: st.dayTrades || 0, serverNow: nowMs };
 }
 
 async function tickWithLock(nowMs = Date.now(), minGapMs = 50000) {
@@ -536,4 +577,4 @@ async function tickWithLock(nowMs = Date.now(), minGapMs = 50000) {
   finally { await kv(['DEL', 'arena:lock']); }
 }
 
-module.exports = { tick, tickWithLock, loadState, view, kv, _test: { dedupe, newGenome, describe, indic, sig, etParts, TRIGGERS } };
+module.exports = { tick, tickWithLock, loadState, view, kv, yIntraday, alpacaIntraday, yget, ybars, _test: { dedupe, newGenome, describe, indic, sig, etParts, TRIGGERS } };
