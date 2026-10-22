@@ -531,6 +531,19 @@ async function tick(nowMs = Date.now()) {
   }
   st.ticker = st.universe.map(s => { const px = st.prices[s]; const pc = st.daily?.[s]?.pdc || IND[s]?.ctx?.pdc; return px ? { s, px, chg: pc ? round2((px / pc - 1) * 100) : null } : null; }).filter(Boolean);
   for (const b of st.bots) { b.hist.push([nowMs, round2(equity(b, st.prices))]); if (b.hist.length > 420) b.hist = b.hist.filter((_, i) => i % 2 === 0); }
+  // парите на целия отбор от началото (вкл. уволнените) — за графиката 1Ч / 1Д / 1С / Всичко
+  if (!st.teamHist) { // еднократно: от днешните точки на трейдърите
+    const ts = [...new Set(st.bots.flatMap(b => b.hist.map(p => p[0])))].sort((a, b) => a - b);
+    st.teamHist = ts.map(t => [t, round2(st.bots.reduce((a, b) => { let v = START_CASH; for (const p of b.hist) { if (p[0] <= t) v = p[1]; else break; } return a + v - START_CASH; }, 0) + (st.firedAllPnl || 0))]);
+  }
+  const teamNow = round2(st.bots.reduce((a, b) => a + equity(b, st.prices) - START_CASH, 0) + (st.firedAllPnl || 0));
+  const lastTeam = st.teamHist[st.teamHist.length - 1];
+  if (!lastTeam || nowMs - lastTeam[0] >= 50000) st.teamHist.push([nowMs, teamNow]); else lastTeam[1] = teamNow;
+  if (st.teamHist.length > 2600) { // по-старите от 2 дни — по една точка на 15 минути
+    const cut = nowMs - 2 * 86400e3, thin = []; let lb = -1;
+    for (const p of st.teamHist) { if (p[0] >= cut) { thin.push(p); continue; } const k = Math.floor(p[0] / 900000); if (k !== lb) { thin.push(p); lb = k; } else thin[thin.length - 1] = p; }
+    st.teamHist = thin.slice(-2600);
+  }
   if (nowMs >= end) {
     for (const b of st.bots) { b.pending = null; for (const p of [...b.positions]) closePos(st, b, p, st.prices[p.sym] ?? p.entry, end, 'eod'); }
     st.status = 'closed';
@@ -565,7 +578,7 @@ function view(st, nowMs = Date.now()) {
   }).sort((a, b) => b.today - a.today || b.total - a.total);
   return { status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, ddFire: DD_FIRE, loserTrades: LOSER_TRADES, startCash: START_CASH, ticker: st.ticker || [],
     stats: Object.entries(st.stats || {}).map(([k, x]) => ({ k, ...x, winRate: x.trades ? Math.round(x.wins / x.trades * 100) : null, avgPct: x.trades ? round2(x.pctSum / x.trades) : null, avgMin: x.trades ? Math.round(x.minutes / x.trades) : null })).sort((a, b) => b.pnl - a.pnl),
-    session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40), firedToday: st.firedToday || 0, firedDayPnl: st.firedDayPnl || 0, firedAllPnl: st.firedAllPnl || 0, teamTotal: round2(bots.reduce((a, b) => a + b.total, 0) + (st.firedAllPnl || 0)), teamToday: round2(bots.reduce((a, b) => a + b.today, 0) + (st.firedDayPnl || 0)), dayTrades: st.dayTrades || 0, serverNow: nowMs };
+    session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40), firedToday: st.firedToday || 0, firedDayPnl: st.firedDayPnl || 0, teamHist: st.teamHist || [], firedAllPnl: st.firedAllPnl || 0, teamTotal: round2(bots.reduce((a, b) => a + b.total, 0) + (st.firedAllPnl || 0)), teamToday: round2(bots.reduce((a, b) => a + b.today, 0) + (st.firedDayPnl || 0)), dayTrades: st.dayTrades || 0, serverNow: nowMs };
 }
 
 async function tickWithLock(nowMs = Date.now(), minGapMs = 50000) {
