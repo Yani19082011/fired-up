@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up</title>
+<meta name="fu-ver" content="24">
 <meta name="theme-color" content="#0D0B1A">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -779,6 +780,10 @@ setInterval(()=>{if(!lastFetch)return;const s=Math.round((Date.now()-lastFetch)/
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 addEventListener('resize',()=>{if(D){homeDrawn=true;render()}});
 load();setInterval(()=>{if(!document.hidden)load()},10000);
+/* нова версия → приложението се обновява само (иначе отворената страница остава стара) */
+const MYVER=(document.querySelector('meta[name=fu-ver]')||{}).content;
+async function checkVer(){try{const r=await fetch('/?v='+Date.now(),{cache:'no-store'});const t=await r.text();const m=t.match(/name="fu-ver" content="([^"]+)"/);if(m&&MYVER&&m[1]!==MYVER&&!pages.length)location.reload()}catch(e){}}
+setInterval(()=>{if(!document.hidden)checkVer()},60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkVer()});
 })();
 </script>
 <!-- PWA: бутон „Инсталирай“ + упътване за iPhone + „Отвори в Chrome“ от Viber/Messenger/Instagram -->
