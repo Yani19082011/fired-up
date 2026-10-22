@@ -342,7 +342,15 @@ function closePos(st, bot, p, price, t, reason, limit = false) {
   bot.cash += p.qty * px - fees;
   bot.positions = bot.positions.filter(x => x !== p);
   const pct = pnl / (p.entry * p.qty) * 100;
-  bot.trades.unshift({ sym: p.sym, qty: p.qty, entry: p.entry, exit: Math.round(px * 10000) / 10000, pnl: round2(pnl), pct: round2(pct), in: p.t, out: t, why: reason, fees: round2((p.feeIn || 0) + fees), stop: p.stop0, tp: p.tp });
+  bot.trades.unshift({ sym: p.sym, qty: p.qty, entry: p.entry, exit: Math.round(px * 10000) / 10000, pnl: round2(pnl), pct: round2(pct), in: p.t, out: t, why: reason, fees: round2((p.feeIn || 0) + fees), stop: p.stop0, tp: p.tp, sigT: p.sigT, limit: p.limit, feeIn: p.feeIn });
+  // такси, успеваемост и рекорди
+  const allFees = (p.feeIn || 0) + fees;
+  bot.fees = round2((bot.fees || 0) + allFees); st.feesAll = round2((st.feesAll || 0) + allFees); st.feesDay = round2((st.feesDay || 0) + allFees);
+  st.dayClosed = (st.dayClosed || 0) + 1; if (pnl >= 0) st.dayWins = (st.dayWins || 0) + 1;
+  const rec = st.records = st.records || {};
+  const r1 = { pct: round2(pct), pnl: round2(pnl), name: bot.name, sym: p.sym, t };
+  if (!rec.best || pct > rec.best.pct) rec.best = r1;
+  if (!rec.worst || pct < rec.worst.pct) rec.worst = r1;
   bot.trades = bot.trades.slice(0, 40);
   bot.realized = round2(bot.realized + pnl);
   const WHY = { tp: 'целта', sl: 'стопа', be: 'стопа на входа', trail: 'плъзгащия стоп', time: 'времето', rsi: 'RSI над 80', vwap: 'пада под VWAP', eod: 'края на деня', fired: 'уволнението' };
@@ -415,7 +423,7 @@ async function tick(nowMs = Date.now()) {
       for (const off of [4, 5]) { const s = Date.parse(`${et.date}T09:30:00Z`) + off * 3600e3; if (etParts(s).min === 570) { session = { start: s - 330 * 60000, regStart: s, end: s + 390 * 60000, guess: true }; break; } }
     }
     if (st.day !== et.date) {
-      st.day = et.date; st.universe = []; st.lastBar = 0; st.firedToday = 0; st.firedDayPnl = 0; st.dayTrades = 0; st.daily = {}; st.dayDone = null;
+      st.day = et.date; st.universe = []; st.lastBar = 0; st.firedToday = 0; st.firedDayPnl = 0; st.dayTrades = 0; st.feesDay = 0; st.dayClosed = 0; st.dayWins = 0; st.daily = {}; st.dayDone = null;
       for (const b of st.bots) { b.pending = null; b.dayStart = round2(equity(b, st.prices)); b.hist = [[nowMs, b.dayStart]]; }
     }
     st.session = session && etParts(session.start).date === et.date ? session : null;
@@ -482,7 +490,7 @@ async function tick(nowMs = Date.now()) {
               const fee = commission(qty, fill);
               const stop = Math.max(0.0001, g.atr ? Math.min(fill * 0.99, fill - g.atr * q.atr) : fill * (1 - g.sl / 100));
               bot.cash -= qty * fill + fee;
-              bot.positions.push({ sym: q.s, qty, entry: fill, t, peak: fill, stop, stop0: round4(stop), tp: round4(fill * (1 + g.tp / 100)), feeIn: round2(fee) });
+              bot.positions.push({ sym: q.s, qty, entry: fill, t, peak: fill, stop, stop0: round4(stop), tp: round4(fill * (1 + g.tp / 100)), feeIn: round2(fee), sigT: q.t, limit: q.limit });
               st.dayTrades = (st.dayTrades || 0) + 1;
               feed(st, t, bot.id, 'buy', `${bot.name} купи ${qtyF(qty)} ${q.s} по ${pxF(fill)} (${money(qty * fill)} + такса ${money(fee)}).`);
             } else if (q.liq < 1 || qty < 1) feed(st, t, bot.id, 'info', `${bot.name} пропусна ${q.s} — твърде малко се търгува, за да влезе с реална сума.`);
@@ -549,6 +557,8 @@ async function tick(nowMs = Date.now()) {
     st.status = 'closed';
     if (st.dayDone !== st.day) {
       st.dayDone = st.day;
+      const teamDay = round2(st.bots.reduce((a, b) => a + equity(b, st.prices) - b.dayStart, 0) + (st.firedDayPnl || 0));
+      st.dayHist = [...(st.dayHist || []).filter(x => x.d !== st.day), { d: st.day, pnl: teamDay }].slice(-120);
       const top = [...st.bots].sort((a, b) => (equity(b, st.prices) - b.dayStart) - (equity(a, st.prices) - a.dayStart))[0];
       if (top) { const d = equity(top, st.prices) - top.dayStart; feed(st, end, top.id, 'info', `Денят свърши. Трейдър на деня: ${top.name} (${d >= 0 ? '+' : ''}${money(d)}).`); }
     }
@@ -571,14 +581,19 @@ function view(st, nowMs = Date.now()) {
       risk: Math.min(1, Math.max(b.strikes / STRIKES_TO_FIRE, ((Math.max(b.peakEq || START_CASH, eq) - eq) / Math.max(b.peakEq || START_CASH, eq)) * 100 / DD_FIRE, eq < START_CASH ? (b.wins + b.losses) / LOSER_TRADES : 0)),
       positions: b.positions.map(p => { const g = b.genome, now = prices[p.sym] ?? p.entry; const trP = g.trail && p.peak > p.entry * 1.01 ? p.peak * (1 - g.trail / 100) : 0;
         const pnl = round2(liqValue(p, now) - p.entry * p.qty - (p.feeIn || 0));
-        return { sym: p.sym, qty: p.qty, entry: p.entry, now, pnl, pct: round2(pnl / (p.entry * p.qty) * 100), t: p.t, stop: round4(Math.max(p.stop, trP)), tp: p.tp || round4(p.entry * (1 + g.tp / 100)), exiting: p.exitAt || null }; }),
+        return { sym: p.sym, qty: p.qty, entry: p.entry, now, pnl, pct: round2(pnl / (p.entry * p.qty) * 100), t: p.t, stop: round4(Math.max(p.stop, trP)), tp: p.tp || round4(p.entry * (1 + g.tp / 100)), exiting: p.exitAt || null, holdUntil: p.t + g.hold * 60000, sigT: p.sigT || null, limit: p.limit || null, feeIn: p.feeIn || 0 }; }),
       pending: b.pending ? { s: b.pending.s, limit: b.pending.limit, t: b.pending.t } : null,
-      trades: b.trades.slice(0, 25),
+      trades: b.trades.slice(0, 25), fees: round2(b.fees || 0), hold: b.genome.hold, maxPos: b.genome.maxPos,
     };
   }).sort((a, b) => b.today - a.today || b.total - a.total);
   return { status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, ddFire: DD_FIRE, loserTrades: LOSER_TRADES, startCash: START_CASH, ticker: st.ticker || [],
     stats: Object.entries(st.stats || {}).map(([k, x]) => ({ k, ...x, winRate: x.trades ? Math.round(x.wins / x.trades * 100) : null, avgPct: x.trades ? round2(x.pctSum / x.trades) : null, avgMin: x.trades ? Math.round(x.minutes / x.trades) : null })).sort((a, b) => b.pnl - a.pnl),
-    session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40), firedToday: st.firedToday || 0, firedDayPnl: st.firedDayPnl || 0, teamHist: st.teamHist || [], firedAllPnl: st.firedAllPnl || 0, teamTotal: round2(bots.reduce((a, b) => a + b.total, 0) + (st.firedAllPnl || 0)), teamToday: round2(bots.reduce((a, b) => a + b.today, 0) + (st.firedDayPnl || 0)), dayTrades: st.dayTrades || 0, serverNow: nowMs };
+    session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40), firedToday: st.firedToday || 0, firedDayPnl: st.firedDayPnl || 0, teamHist: st.teamHist || [], feesAll: st.feesAll || 0, feesDay: st.feesDay || 0, dayClosed: st.dayClosed || 0, dayWins: st.dayWins || 0, dayHist: st.dayHist || [],
+    records: (() => { const R = { ...(st.records || {}) }; const ss = st.session && st.session.start || 0;
+      const surv = [...st.bots.map(b => ({ name: b.name, ms: nowMs - b.hiredAt, alive: true })), ...(st.fired || []).map(f => ({ name: f.name, ms: f.firedAt - f.hiredAt, alive: false }))].sort((a, b) => b.ms - a.ms)[0];
+      const most = st.bots.map(b => ({ name: b.name, n: b.trades.filter(t => t.out >= ss).length })).sort((a, b) => b.n - a.n)[0];
+      const bestDay = (st.dayHist || []).slice().sort((a, b) => b.pnl - a.pnl)[0];
+      return { ...R, survivor: surv || null, most: most || null, bestDay: bestDay || null }; })(), firedAllPnl: st.firedAllPnl || 0, teamTotal: round2(bots.reduce((a, b) => a + b.total, 0) + (st.firedAllPnl || 0)), teamToday: round2(bots.reduce((a, b) => a + b.today, 0) + (st.firedDayPnl || 0)), dayTrades: st.dayTrades || 0, serverNow: nowMs };
 }
 
 async function tickWithLock(nowMs = Date.now(), minGapMs = 50000) {
