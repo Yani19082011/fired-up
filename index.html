@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up</title>
-<meta name="theme-color" content="#0B1020">
+<meta name="theme-color" content="#080C1A">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
 <link rel="icon" href="/icon.png">
@@ -13,13 +13,14 @@
 <meta name="apple-mobile-web-app-title" content="Fired Up">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap">
 <style>
-/* Layout: a trading-floor scoreboard on one phone column — sticky header with live status + NY clock, a 3-number summary strip, then a segmented switch between Класиране / На живо / Уволнени. Deliberately one dark look (a screen you watch, like a ticker board). */
+/* Layout: a trading-floor scoreboard on one phone column. Sticky header (flame logo, live pill, NY clock) over a scrolling ticker tape; a 3-number summary; a 4-way switch (Класиране / На живо / Статистика / Уволнени). Deliberately one dark look — a screen you watch, like a ticker board. */
 :root{
   --pwa-offset:16px;
-  --bg:#0B1020; --surface:#121A2E; --raise:#18223B; --line:#24314F; --ink:#E9EEF8; --muted:#8C9BBA;
-  --accent:#F2B544; --accent-ink:#1A1204; --up:#3DDC97; --down:#FF5C7A; --up-bg:rgba(61,220,151,.12); --down-bg:rgba(255,92,122,.12);
+  --bg:#080C1A; --surface:#10172B; --raise:#172038; --line:#223053; --ink:#EEF2FB; --muted:#8C9BBA;
+  --accent:#F2B544; --accent-ink:#1A1204; --up:#3DDC97; --down:#FF5C7A; --up-bg:rgba(61,220,151,.13); --down-bg:rgba(255,92,122,.13);
+  --gold:#F7C948; --silver:#C9D3E6; --bronze:#E09B5A;
   --display:"Russo One","Arial Black",system-ui,sans-serif;
   --body:"Manrope","Segoe UI",system-ui,-apple-system,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
@@ -27,141 +28,202 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px)}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px);overflow-x:hidden}
+body::after{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;background:radial-gradient(40% 30% at 20% 10%,rgba(242,181,68,.10),transparent 70%),radial-gradient(35% 30% at 85% 40%,rgba(91,192,235,.08),transparent 70%),radial-gradient(40% 35% at 30% 90%,rgba(232,106,146,.07),transparent 70%);animation:drift 24s ease-in-out infinite alternate}
+@keyframes drift{to{transform:translate3d(4%,-3%,0) rotate(4deg)}}
 [hidden]{display:none!important}
-.wrap{max-width:640px;margin:0 auto;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
+.wrap{max-width:660px;margin:0 auto;padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:linear-gradient(var(--bg) 80%,rgba(11,16,32,0))}
-header .wrap{display:flex;align-items:center;gap:10px;padding-block:12px 10px}
-.logo{font-family:var(--display);font-size:22px;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
-.logo svg{width:22px;height:22px;color:var(--accent)}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:rgba(8,12,26,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+header .wrap{display:flex;align-items:center;gap:10px;padding-block:10px 8px}
+.logo{font-family:var(--display);font-size:22px;letter-spacing:.03em;display:flex;align-items:center;gap:8px}
+.logo svg{width:24px;height:24px;color:var(--accent);filter:drop-shadow(0 0 8px rgba(242,181,68,.6));transform-origin:50% 90%;animation:flick 1.6s ease-in-out infinite}
+@keyframes flick{0%,100%{transform:scale(1) rotate(-2deg)}30%{transform:scale(1.08,.94) rotate(2deg)}60%{transform:scale(.96,1.06) rotate(-1deg)}}
 .status{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
-.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:4px 10px;background:var(--raise);color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:4px 10px;background:var(--raise);color:var(--muted)}
 .pill i{width:8px;height:8px;border-radius:50%;background:currentColor}
-.pill.live{color:var(--up);background:var(--up-bg)}.pill.live i{animation:pulse 1.4s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.pill.live{color:var(--up);background:var(--up-bg)}.pill.live i{box-shadow:0 0 0 0 currentColor;animation:ping 1.6s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(61,220,151,.7)}80%,100%{box-shadow:0 0 0 7px rgba(61,220,151,0)}}
 .clock{font-family:var(--mono);font-size:11px;color:var(--muted)}
-main .wrap{display:flex;flex-direction:column;gap:14px;padding-block:4px calc(32px + env(safe-area-inset-bottom,0px))}
-.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.sum div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.sum b{font-family:var(--mono);font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sum span{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+/* ticker tape */
+.tape{overflow:hidden;border-top:1px solid var(--line);height:28px;position:relative;mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.tape .run{display:flex;gap:26px;white-space:nowrap;position:absolute;left:0;top:0;height:28px;align-items:center;font-family:var(--mono);font-size:12px;font-weight:700;animation:tape linear infinite;will-change:transform}
+.tape .run span b{color:var(--ink);margin-right:6px}
+@keyframes tape{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+main .wrap{display:flex;flex-direction:column;gap:14px;padding-block:14px calc(36px + env(safe-area-inset-bottom,0px))}
+.sum{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px}
+.sum div{background:linear-gradient(160deg,var(--raise),var(--surface));border:1px solid var(--line);border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sum b{font-family:var(--mono);font-size:20px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum span{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 .up{color:var(--up)}.down{color:var(--down)}
-.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--surface);border:1px solid var(--line);padding:4px;border-radius:14px}
-.seg button{font:inherit;font-weight:800;font-size:14px;border:0;border-radius:10px;padding:10px 4px;background:none;color:var(--muted);cursor:pointer;position:relative}
-.seg button[aria-selected="true"]{background:var(--raise);color:var(--ink)}
-.seg .badge{position:absolute;top:5px;right:10px;min-width:16px;height:16px;border-radius:8px;background:var(--down);color:#fff;font-size:10px;line-height:16px;padding:0 4px}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;background:var(--surface);border:1px solid var(--line);padding:4px;border-radius:14px;}
+.seg button{font:inherit;font-weight:800;font-size:13px;border:0;border-radius:10px;padding:10px 2px;background:none;color:var(--muted);cursor:pointer;position:relative;transition:color .2s}
+.seg button[aria-selected="true"]{background:var(--raise);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.seg .badge{position:absolute;top:-6px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:var(--down);color:#fff;font-size:10px;line-height:16px;padding:0 4px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 /* bot cards */
 .list{display:flex;flex-direction:column;gap:10px}
-.bot{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px;cursor:pointer;position:relative;overflow:hidden}
+.bot{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;cursor:pointer;position:relative;overflow:hidden;transition:border-color .3s,background .6s}
 .bot::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--c)}
-.bot .top{display:flex;align-items:center;gap:12px}
-.rank{font-family:var(--display);font-size:20px;color:var(--muted);width:20px;text-align:center;flex:none}
-.bot:first-child .rank{color:var(--accent)}
-.av{width:42px;height:42px;border-radius:50%;background:var(--c);color:#0B1020;display:grid;place-items:center;font-family:var(--display);font-size:16px;flex:none}
+.bot.lead{border-color:rgba(247,201,72,.55);background:linear-gradient(160deg,rgba(247,201,72,.10),var(--surface) 55%);animation:glow 3s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(247,201,72,0)}50%{box-shadow:0 0 22px 0 rgba(247,201,72,.22)}}
+.bot.fl-up{animation:flUp .9s ease-out}.bot.fl-down{animation:flDn .9s ease-out}
+.bot.lead.fl-up,.bot.lead.fl-down{animation:glow 3s ease-in-out infinite}
+@keyframes flUp{0%{background:rgba(61,220,151,.28)}100%{background:var(--surface)}}
+@keyframes flDn{0%{background:rgba(255,92,122,.28)}100%{background:var(--surface)}}
+.bot .top{display:flex;align-items:center;gap:10px}
+.rank{font-family:var(--display);font-size:18px;color:var(--muted);width:22px;text-align:center;flex:none}
+.rank.r1{color:var(--gold)}.rank.r2{color:var(--silver)}.rank.r3{color:var(--bronze)}
+.av{width:40px;height:40px;border-radius:50%;background:var(--c);color:#0B1020;display:grid;place-items:center;font-family:var(--display);font-size:15px;flex:none;position:relative}
+.crown{position:absolute;top:-13px;left:50%;transform:translateX(-50%) rotate(-8deg);width:22px;height:16px;color:var(--gold);filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateX(-50%) translateY(-2px) rotate(6deg)}}
 .who{flex:1;min-width:0}
-.who b{display:block;font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who b{display:block;font-size:15.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .who span{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.tag{font-size:11px;font-weight:800;border-radius:6px;padding:1px 7px;background:var(--raise);color:var(--ink)}
+.tag{font-size:10.5px;font-weight:800;border-radius:6px;padding:1px 7px;background:var(--raise);color:var(--ink);white-space:nowrap}
+.new{font-size:10px;font-weight:800;border-radius:6px;padding:1px 6px;background:#5BC0EB;color:#08101F;text-transform:uppercase;letter-spacing:.05em}
 .pnl{text-align:right;flex:none}
-.pnl b{display:block;font-family:var(--mono);font-size:19px;font-weight:700}
-.pnl span{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.mid{display:flex;align-items:center;gap:12px}
-.spark{flex:1;height:44px;min-width:0}
-.strikes{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
-.strikes small{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-.strikes div{display:flex;gap:4px}
-.strikes i{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line);display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:800}
-.strikes i.on{background:var(--down);border-color:var(--down);color:#fff}
+.pnl b{display:block;font-family:var(--mono);font-size:18px;font-weight:800}
+.pnl span{font-family:var(--mono);font-size:11.5px}
+.spark{width:100%;height:38px;display:block}
+.risk{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--muted)}
+.risk .bar{flex:1;height:5px;border-radius:3px;background:var(--raise);overflow:hidden}
+.risk .bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--up),var(--accent) 55%,var(--down));background-size:300% 100%;transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.risk .dots{display:flex;gap:3px}
+.risk .dots i{width:9px;height:9px;border-radius:3px;background:var(--raise);border:1px solid var(--line)}
+.risk .dots i.on{background:var(--down);border-color:var(--down)}
+.risk.hot{color:var(--down)}.risk.hot .bar i{animation:hot 1s ease-in-out infinite}
+@keyframes hot{50%{filter:brightness(1.5)}}
 .pos{display:flex;flex-direction:column;gap:6px}
-.p{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:2px 8px;background:var(--raise);border-radius:10px;padding:8px 10px;font-family:var(--mono);font-size:12.5px}
+.p{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:2px 8px;background:var(--raise);border-radius:10px;padding:7px 10px;font-family:var(--mono);font-size:12.5px}
 .p .q{grid-column:2/4;grid-row:2;color:var(--muted)}
-.p .s{font-weight:700}
-.p .live{justify-self:end;font-weight:700;white-space:nowrap}
-.p .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.4s infinite}
-.idle{font-size:13px;color:var(--muted)}
-.detail{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:10px;cursor:default}
+.p .s{font-weight:800}
+.p .live{justify-self:end;font-weight:800;white-space:nowrap}
+.p .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:ping2 1.4s infinite}
+@keyframes ping2{0%{box-shadow:0 0 0 0 rgba(242,181,68,.7)}80%,100%{box-shadow:0 0 0 6px rgba(242,181,68,0)}}
+.detail{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:10px;cursor:default;animation:open .35s ease-out}
+@keyframes open{from{opacity:0;transform:translateY(-6px)}}
 .rule{display:flex;gap:10px;font-size:14px}
-.rule b{flex:none;width:62px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:2px}
-.trades{display:flex;flex-direction:column;gap:2px;font-family:var(--mono);font-size:12px}
+.rule b{flex:none;width:62px;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:3px}
+.mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;font-family:var(--mono);font-size:12px;text-align:center}
+.mini div{background:var(--raise);border-radius:10px;padding:6px 4px}
+.mini b{display:block;font-size:14px}
+.mini span{font-size:10px;color:var(--muted);font-family:var(--body);font-weight:700}
+.trades{display:flex;flex-direction:column;font-family:var(--mono);font-size:12px}
 .tr{display:grid;grid-template-columns:auto 1fr auto;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)}
 .tr:last-child{border-bottom:0}
 .tr span:nth-child(2){color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.foot{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.more{font-size:11.5px;color:var(--muted);text-align:center;font-weight:700}
 /* feed */
 .feed{display:flex;flex-direction:column}
-.ev{display:grid;grid-template-columns:44px 10px 1fr;gap:8px;align-items:start;padding:10px 2px;border-bottom:1px solid var(--line);font-size:14px}
-.ev time{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:2px}
+.ev{display:grid;grid-template-columns:42px 10px 1fr;gap:8px;align-items:start;padding:10px 2px;border-bottom:1px solid var(--line);font-size:14px}
+.ev.fresh{animation:slide .55s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes slide{from{opacity:0;transform:translateY(-10px) scale(.98);background:rgba(242,181,68,.12)}}
+.ev time{font-family:var(--mono);font-size:11.5px;color:var(--muted);padding-top:2px}
 .ev i{width:10px;height:10px;border-radius:50%;margin-top:5px;background:var(--muted)}
 .ev.buy i{background:var(--accent)}.ev.win i{background:var(--up)}.ev.loss i{background:var(--down)}
 .ev.fired{background:var(--down-bg);border-radius:12px;border-bottom-color:transparent;margin:4px 0;padding:10px}
 .ev.fired i{background:var(--down)}.ev.fired div{font-weight:800}
-.ev.hired div{color:var(--ink)}.ev.hired i{background:#5BC0EB}
+.ev.hired{background:rgba(91,192,235,.09);border-radius:12px;border-bottom-color:transparent;margin:4px 0;padding:10px}.ev.hired i{background:#5BC0EB}
+/* stats */
+.st{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.st .h{display:flex;align-items:baseline;gap:10px}
+.st .h b{font-size:15px;font-weight:800;flex:1;min-width:0}
+.st .h span{font-family:var(--mono);font-weight:800}
+.wr{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:700}
+.wr .bar{flex:1;height:8px;border-radius:4px;background:var(--down-bg);overflow:hidden}
+.wr .bar i{display:block;height:100%;background:var(--up);border-radius:4px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.st .nums{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted)}
+.st .nums b{color:var(--ink);font-family:var(--mono)}
+.medal{font-family:var(--display);font-size:13px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#10172B;flex:none}
 /* fired */
-.grave{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;opacity:.92}
+.grave{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
 .grave .top{display:flex;align-items:center;gap:10px}
-.grave .av{width:34px;height:34px;font-size:13px;filter:grayscale(.7)}
+.grave .av{width:34px;height:34px;font-size:13px;filter:grayscale(.75) brightness(.8)}
 .grave .who b{text-decoration:line-through;text-decoration-color:var(--down);text-decoration-thickness:2px}
 .grave p{margin:0;font-size:13px;color:var(--muted)}
-.stamp{font-family:var(--display);font-size:11px;color:var(--down);border:1.5px solid var(--down);border-radius:4px;padding:1px 6px;transform:rotate(-4deg);letter-spacing:.08em}
+.grave .why{color:var(--down);font-weight:700;font-size:12.5px}
+.stamp{font-family:var(--display);font-size:11px;color:var(--down);border:1.5px solid var(--down);border-radius:4px;padding:1px 6px;transform:rotate(-5deg);letter-spacing:.08em;display:inline-block}
 .empty{color:var(--muted);text-align:center;padding:24px 12px;font-size:14px}
 .setup{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:8px}
 .setup h2{margin:0;font-family:var(--display);font-size:18px;font-weight:400}
-.note{font-size:12px;color:var(--muted);text-align:center;line-height:1.5}
+.note{font-size:12px;color:var(--muted);text-align:center;line-height:1.55;margin:0}
 .upd{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center}
-@media (prefers-reduced-motion:reduce){.pill.live i,.p .dot{animation:none}}
+/* fired overlay */
+.boom{position:fixed;inset:0;z-index:60;display:grid;place-items:center;background:radial-gradient(circle at 50% 45%,rgba(255,92,122,.35),rgba(8,12,26,.94) 60%);cursor:pointer;animation:fadeIn .25s ease-out;padding:24px}
+@keyframes fadeIn{from{opacity:0}}
+.boom .card{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;animation:shake .5s .45s}
+.boom .av{width:86px;height:86px;font-size:30px;filter:grayscale(.6)}
+.boom .nm{font-family:var(--display);font-size:26px;text-decoration:line-through;text-decoration-color:var(--down);text-decoration-thickness:4px}
+.boom .big{font-family:var(--display);font-size:clamp(44px,13vw,72px);color:var(--down);border:5px solid var(--down);border-radius:12px;padding:4px 18px;letter-spacing:.06em;transform:rotate(-8deg);animation:slam .5s cubic-bezier(.2,1.6,.4,1) .15s both;text-shadow:0 0 30px rgba(255,92,122,.6);box-shadow:0 0 40px rgba(255,92,122,.35)}
+@keyframes slam{from{transform:rotate(-8deg) scale(3);opacity:0}to{transform:rotate(-8deg) scale(1);opacity:1}}
+@keyframes shake{20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(3px)}}
+.boom .why{color:#FFC2CD;font-weight:700;max-width:300px}
+.boom .next{margin-top:8px;background:rgba(91,192,235,.14);border:1px solid rgba(91,192,235,.4);border-radius:14px;padding:10px 14px;font-size:14px;max-width:320px;animation:rise .5s 1.1s both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}}
+.boom small{color:var(--muted);font-size:12px;animation:rise .4s 1.6s both}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
-<header><div class="wrap">
-  <div class="logo"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3.6 5.2 5.8 5.2 10.8A5.2 5.2 0 0 1 6.8 12.8c0-2.1.8-3.6 2.1-4.7.2 1.7 1.1 2.7 2.1 3.1 0-3.1.3-6.4 1-9.2z"/></svg>FIRED UP</div>
-  <div class="status"><span class="pill" id="pill"><i></i><span id="pillTxt">Зарежда…</span></span><span class="clock" id="clock"></span></div>
-</div></header>
+<header>
+  <div class="wrap">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3.6 5.2 5.8 5.2 10.8A5.2 5.2 0 0 1 6.8 12.8c0-2.1.8-3.6 2.1-4.7.2 1.7 1.1 2.7 2.1 3.1 0-3.1.3-6.4 1-9.2z"/></svg>FIRED UP</div>
+    <div class="status"><span class="pill" id="pill"><i></i><span id="pillTxt">Зарежда…</span></span><span class="clock" id="clock"></span></div>
+  </div>
+  <div class="tape" id="tape" hidden><div class="run" id="tapeRun"></div></div>
+</header>
 <main><div class="wrap">
   <div class="setup" id="setup" hidden></div>
-  <div class="sum" id="sum">
+  <div class="sum">
     <div><b id="sTotal">—</b><span>Общо днес</span></div>
-    <div><b id="sTrades">—</b><span>Сделки днес</span></div>
-    <div><b id="sFired">—</b><span>Уволнени днес</span></div>
+    <div><b id="sTrades">—</b><span>Сделки</span></div>
+    <div><b id="sFired">—</b><span>Уволнени</span></div>
   </div>
   <div class="seg" role="tablist">
     <button role="tab" data-v="board" aria-selected="true">Класиране</button>
     <button role="tab" data-v="feed" aria-selected="false">На живо</button>
+    <button role="tab" data-v="stats" aria-selected="false">Статистика</button>
     <button role="tab" data-v="fired" aria-selected="false">Уволнени<span class="badge" id="firedBadge" hidden></span></button>
   </div>
   <section id="v-board" class="list"></section>
   <section id="v-feed" class="feed" hidden></section>
+  <section id="v-stats" class="list" hidden></section>
   <section id="v-fired" class="list" hidden></section>
   <div class="upd" id="upd"></div>
-  <p class="note">Фалшиви пари, истински цени. Всеки бот започва с $10 000. Две поредни загуби и е уволнен, а на мястото му идва нов с друга стратегия. Цените са истински, в реално време (Yahoo Finance). Часовникът е по Ню Йорк. Ботовете търгуват от премаркета в 11:00 до 22:55 българско време (борсата отваря в 16:30).</p>
+  <p class="note" id="rules"></p>
 </div></main>
+<div class="boom" id="boom" hidden role="dialog" aria-label="Уволнение"></div>
 
 <script>
 (function(){
 const $=s=>document.querySelector(s);
-let D=null,tab='board',open=new Set(),lastFetch=0,seenFired=0;
-try{seenFired=+localStorage.getItem('fu-seen-fired')||0;tab=localStorage.getItem('fu-tab')||'board'}catch(e){}
+let D=null,tab='board',open=new Set(),lastFetch=0,seenFired=0,animFired=0,prevToday={},seenFeed=new Set(),firstLoad=true,boomQ=[];
+try{seenFired=+localStorage.getItem('fu-seen-fired')||0;animFired=+localStorage.getItem('fu-anim-fired')||0;tab=localStorage.getItem('fu-tab')||'board'}catch(e){}
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=(n,sign)=>{const a=Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});return (n<0?'−$':(sign&&n>0?'+$':'$'))+a};
+const money0=n=>(n>0?'+':n<0?'−':'')+'$'+Math.round(Math.abs(n)).toLocaleString('en-US');
 const pct=n=>(n>0?'+':n<0?'−':'')+Math.abs(n).toFixed(2).replace('.',',')+'%';
 const cls=n=>n>0?'up':n<0?'down':'';
 const px=n=>'$'+(n<1?n.toFixed(4):n.toFixed(2));
 const nyTime=ms=>new Date(ms).toLocaleTimeString('bg-BG',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit'});
 const initials=n=>n.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
 function dur(ms){const m=Math.round(ms/60000);if(m<60)return m+' мин';const h=Math.round(m/60);if(h<24)return h+' ч';return Math.round(h/24)+' дни'}
+const CROWN='<svg class="crown" viewBox="0 0 24 18" fill="currentColor" aria-hidden="true"><path d="M2 16h20l-1.5-11-5.5 5-3-8-3 8-5.5-5z"/></svg>';
+
+/* число, което се брои до новата стойност */
+function countTo(el,to,fmt){const from=+el.dataset.v;el.dataset.v=to;if(reduce||isNaN(from)||from===to){el.textContent=fmt(to);return}
+  const t0=performance.now(),d=700;const step=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,3);el.textContent=fmt(from+(to-from)*e);if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
 
 async function load(){
-  try{
-    const r=await fetch('/api/state',{cache:'no-store'});const d=await r.json();lastFetch=Date.now();
-    if(d.error){setup(d.error,d.message);return}
-    $('#setup').hidden=true;D=d;render();
-  }catch(e){$('#pillTxt').textContent='Няма връзка';$('#pill').className='pill'}
+  try{const r=await fetch('/api/state',{cache:'no-store'});const d=await r.json();lastFetch=Date.now();
+    if(d.error){setup(d.error,d.message);return}$('#setup').hidden=true;D=d;render()}
+  catch(e){$('#pillTxt').textContent='Няма връзка';$('#pill').className='pill'}
 }
 function setup(code,msg){
   const T={no_kv:['Липсва паметта','Във Vercel → Storage свържи базата Upstash с този проект (префикс KV) и направи Redeploy.'],
-    no_alpaca:['Няма данни за цените','Yahoo Finance не отговаря. По желание добави ALPACA_KEY_ID и ALPACA_SECRET_KEY във Vercel като резервен източник и направи Redeploy.'],
-    bad_alpaca:['Alpaca отказва ключовете','Провери ALPACA_KEY_ID и ALPACA_SECRET_KEY във Vercel. Трябва да са от Paper Trading акаунта.']}[code]||['Нещо се обърка',msg||''];
+    no_alpaca:['Няма данни за цените','Yahoo Finance не отговаря в момента. По желание добави ALPACA_KEY_ID и ALPACA_SECRET_KEY във Vercel като резерва.']}[code]||['Нещо се обърка',msg||''];
   $('#setup').hidden=false;$('#setup').innerHTML=`<h2>${esc(T[0])}</h2><div>${esc(T[1])}</div>`;$('#pillTxt').textContent='Настройка';
 }
 function render(){
@@ -170,57 +232,101 @@ function render(){
   $('#pill').className='pill '+st[1];$('#pillTxt').textContent=st[0];
   $('#clock').textContent=d.simMs?`Ню Йорк ${nyTime(d.simMs)}`:'';
   const tot=d.bots.reduce((s,b)=>s+b.today,0);
-  $('#sTotal').textContent=(tot>0?'+':tot<0?'−':'')+'$'+Math.round(Math.abs(tot)).toLocaleString('en-US');$('#sTotal').className=cls(tot);
-  $('#sTrades').textContent=d.dayTrades;$('#sFired').textContent=d.firedToday;$('#sFired').className=d.firedToday?'down':'';
+  countTo($('#sTotal'),tot,money0);$('#sTotal').className=cls(tot);
+  countTo($('#sTrades'),d.dayTrades,n=>String(Math.round(n)));
+  countTo($('#sFired'),d.firedToday,n=>String(Math.round(n)));$('#sFired').className=d.firedToday?'down':'';
+  tape(d);
   const nf=d.fired.length?d.fired[0].firedAt:0;const unseen=d.fired.filter(f=>f.firedAt>seenFired).length;
   $('#firedBadge').hidden=!unseen||tab==='fired';$('#firedBadge').textContent=unseen;
   document.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-selected',b.dataset.v===tab));
-  for(const v of ['board','feed','fired'])$('#v-'+v).hidden=v!==tab;
+  for(const v of ['board','feed','stats','fired'])$('#v-'+v).hidden=v!==tab;
   if(tab==='fired'&&nf){seenFired=nf;try{localStorage.setItem('fu-seen-fired',nf)}catch(e){}}
-  board(d);feedV(d);firedV(d);
+  $('#rules').textContent=`Фалшиви пари, истински цени (Yahoo, в реално време). Всеки трейдър започва с $10 000 и е уволнен при ${d.strikesToFire} поредни загуби, спад ${d.ddFire}% от най-високия си капитал или ако е на минус след ${d.loserTrades} сделки. Търгуват от 11:00 (премаркет) до 22:55 българско време.`;
+  board(d);feedV(d);statsV(d);firedV(d);
+  // анимация при ново уволнение (само за събития след последното видяно)
+  if(firstLoad){if(!animFired&&nf){animFired=nf;try{localStorage.setItem('fu-anim-fired',nf)}catch(e){}}firstLoad=false}
+  else{const fresh=d.fired.filter(f=>f.firedAt>animFired).reverse();if(fresh.length){boomQ.push(...fresh);animFired=nf;try{localStorage.setItem('fu-anim-fired',nf)}catch(e){}if($('#boom').hidden)nextBoom()}}
+}
+function tape(d){
+  const items=(d.ticker||[]);if(!items.length){$('#tape').hidden=true;return}
+  $('#tape').hidden=false;
+  const html=items.map(t=>`<span><b>${esc(t.s)}</b>${px(t.px)} <span class="${cls(t.chg)}">${t.chg==null?'':(t.chg>0?'▲':'▼')+Math.abs(t.chg).toFixed(1).replace('.',',')+'%'}</span></span>`).join('');
+  const run=$('#tapeRun');const key=items.map(t=>t.s).join();
+  run.innerHTML=html+html;
+  if(run.dataset.k!==key){run.dataset.k=key;run.style.animationDuration=Math.max(20,items.length*4)+'s'}
 }
 function board(d){
-  $('#v-board').innerHTML=d.bots.map((b,i)=>{
-    const o=open.has(b.id);
-    return `<article class="bot" data-id="${b.id}" style="--c:${b.color}" tabindex="0" aria-expanded="${o}">
-      <div class="top"><span class="rank">${i+1}</span><span class="av">${esc(initials(b.name))}</span>
-        <div class="who"><b>${esc(b.name)}</b><span><span class="tag">${esc(b.style)}</span>${money(b.equity)}</span></div>
-        <div class="pnl"><b class="${cls(b.today)}">${money(b.today,true)}</b><span class="${cls(b.today)}">${pct(b.todayPct)} днес</span></div></div>
-      <div class="mid"><canvas class="spark" data-id="${b.id}" aria-label="Графика на капитала днес"></canvas>
-        <div class="strikes"><small>Загуби подред</small><div>${Array.from({length:d.strikesToFire},(_,k)=>`<i class="${k<b.strikes?'on':''}">${k<b.strikes?'✕':''}</i>`).join('')}</div></div></div>
-      <div class="pos">${b.positions.length?b.positions.map(p=>{const pc=(p.now/p.entry-1)*100;return `<div class="p"><span class="dot"></span><span class="s">${esc(p.sym)}</span><span class="live ${cls(p.pnl)}">${money(p.pnl,true)} · ${pct(pc)}</span><span class="q">${p.qty.toLocaleString('bg-BG')} бр. · купи ${px(p.entry)} · сега ${px(p.now)}</span></div>`}).join(''):`<span class="idle">${(d.status==='open'||d.status==='premarket')?'Чака сигнал…':'Без позиции'}</span>`}</div>
-      ${o?`<div class="detail"><div class="rule"><b>Купува</b><span>${esc(b.desc.buy.replace(/^Купува, когато /,'Когато '))}</span></div><div class="rule"><b>Продава</b><span>${esc(b.desc.sell.replace(/^Продава /,''))}</span></div><div class="rule"><b>Пари</b><span>${esc(b.desc.size)}</span></div>
-        <div class="trades">${b.trades.length?b.trades.slice(0,12).map(t=>`<div class="tr"><span>${nyTime(t.out)}</span><span>${esc(t.sym)} ${t.qty.toLocaleString('bg-BG')} бр. ${px(t.entry)}→${px(t.exit)}</span><span class="${cls(t.pnl)}">${money(t.pnl,true)}</span></div>`).join(''):'<span class="idle">Още няма сделки.</span>'}</div></div>`:''}
-      <div class="foot"><span>${b.wins} печ. / ${b.losses} заг.</span><span>Общо ${money(b.total,true)}</span><span>${o?'▲ скрий':'▼ стратегия'}</span></div>
-    </article>`}).join('')||'<div class="empty">Ботовете се подготвят…</div>';
-  document.querySelectorAll('canvas.spark').forEach(c=>{const b=d.bots.find(x=>x.id===c.dataset.id);spark(c,b)});
+  const el=$('#v-board');
+  // FLIP: запомняме местата преди преподреждането
+  const before={};el.querySelectorAll('.bot').forEach(c=>before[c.dataset.id]=c.getBoundingClientRect().top);
+  el.innerHTML=d.bots.map((b,i)=>{
+    const o=open.has(b.id);const fresh=Date.now()-b.hiredAt<30*60000;
+    const riskPct=Math.round(b.risk*100);
+    return `<article class="bot${i===0&&b.today>0?' lead':''}" data-id="${b.id}" style="--c:${b.color}" tabindex="0" aria-expanded="${o}">
+      <div class="top"><span class="rank ${i<3?'r'+(i+1):''}">${i+1}</span><span class="av">${i===0&&b.today>0?CROWN:''}${esc(initials(b.name))}</span>
+        <div class="who"><b>${esc(b.name)}</b><span><span class="tag">${esc(b.style)}</span>${fresh?'<span class="new">нов</span>':''}<span>${money(b.equity)}</span></span></div>
+        <div class="pnl"><b class="${cls(b.today)}" data-num="${b.id}">${money(b.today,true)}</b><span class="${cls(b.today)}">${pct(b.todayPct)} днес</span></div></div>
+      <canvas class="spark" data-id="${b.id}" aria-label="Капиталът му днес"></canvas>
+      ${b.positions.length?`<div class="pos">${b.positions.map(p=>{const pc=(p.now/p.entry-1)*100;return `<div class="p"><span class="dot"></span><span class="s">${esc(p.sym)}</span><span class="live ${cls(p.pnl)}">${money(p.pnl,true)} · ${pct(pc)}</span><span class="q">${p.qty.toLocaleString('bg-BG')} бр. · купи ${px(p.entry)} · сега ${px(p.now)}</span></div>`}).join('')}</div>`:''}
+      <div class="risk ${riskPct>=67?'hot':''}"><span>Риск от уволнение</span><span class="bar"><i style="width:${riskPct}%;background-position:${100-riskPct}% 0"></i></span><span class="dots">${Array.from({length:d.strikesToFire},(_,k)=>`<i class="${k<b.strikes?'on':''}"></i>`).join('')}</span></div>
+      ${o?`<div class="detail">
+        <div class="mini"><div><b>${b.wins}</b><span>печеливши</span></div><div><b>${b.losses}</b><span>губещи</span></div><div><b class="${cls(b.total)}">${money0(b.total)}</b><span>общо</span></div><div><b class="${b.dd>0?'down':''}">−${b.dd.toFixed(1).replace('.',',')}%</b><span>от върха</span></div></div>
+        <div class="rule"><b>Купува</b><span>${esc(b.desc.buy.replace(/^Купува, когато /,'Когато '))}</span></div><div class="rule"><b>Продава</b><span>${esc(b.desc.sell)}</span></div><div class="rule"><b>Пари</b><span>${esc(b.desc.size)}</span></div>
+        <div class="trades">${b.trades.length?b.trades.slice(0,12).map(t=>`<div class="tr"><span>${nyTime(t.out)}</span><span>${esc(t.sym)} ${t.qty.toLocaleString('bg-BG')} бр. ${px(t.entry)}→${px(t.exit)}</span><span class="${cls(t.pnl)}">${money(t.pnl,true)}</span></div>`).join(''):'<span class="more">Още няма сделки.</span>'}</div></div>`:`<div class="more">${(d.status==='open'||d.status==='premarket')&&!b.positions.length?'Чака сигнал · ':''}▼ стратегия и сделки</div>`}
+    </article>`}).join('')||'<div class="empty">Трейдърите се подготвят…</div>';
+  el.querySelectorAll('.bot').forEach(c=>{
+    const id=c.dataset.id,b=d.bots.find(x=>x.id===id);
+    spark(c.querySelector('canvas'),b);
+    if(!reduce&&before[id]!=null){const dy=before[id]-c.getBoundingClientRect().top;if(Math.abs(dy)>2){c.animate([{transform:`translateY(${dy}px)`},{transform:'none'}],{duration:650,easing:'cubic-bezier(.2,.8,.2,1)'})}}
+    const prev=prevToday[id];if(prev!=null&&Math.abs(prev-b.today)>=0.5){c.classList.add(b.today>prev?'fl-up':'fl-down');const n=c.querySelector('[data-num]');n.dataset.v=prev;countTo(n,b.today,v=>money(v,true))}
+    prevToday[id]=b.today;
+  });
 }
 function spark(cv,b){
-  const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;cv.width=w*r;cv.height=h*r;const x=cv.getContext('2d');x.scale(r,r);
-  const pts=b.hist||[];if(pts.length<2){x.fillStyle='#8C9BBA';x.font='12px Manrope';x.fillText('графиката ще се появи с първите минути',0,h/2+4);return}
+  if(!cv||!b)return;const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return;cv.width=w*r;cv.height=h*r;const x=cv.getContext('2d');x.scale(r,r);
+  const pts=b.hist||[];if(pts.length<2){x.fillStyle='#8C9BBA';x.font='11px Manrope';x.fillText('графиката ще се появи с първите минути',0,h/2+4);return}
   const base=pts[0][1];const vals=pts.map(p=>p[1]);let mn=Math.min(base,...vals),mx=Math.max(base,...vals);if(mx-mn<1){mx+=0.5;mn-=0.5}
-  const t0=pts[0][0],t1=pts[pts.length-1][0]||t0+1;const X=t=>(t-t0)/(t1-t0||1)*(w-4)+2,Y=v=>h-3-(v-mn)/(mx-mn)*(h-6);
-  x.strokeStyle='rgba(140,155,186,.35)';x.setLineDash([3,3]);x.beginPath();x.moveTo(0,Y(base));x.lineTo(w,Y(base));x.stroke();x.setLineDash([]);
+  const t0=pts[0][0],t1=pts[pts.length-1][0]||t0+1;const X=t=>(t-t0)/(t1-t0||1)*(w-6)+2,Y=v=>h-3-(v-mn)/(mx-mn)*(h-6);
+  x.strokeStyle='rgba(140,155,186,.3)';x.setLineDash([3,4]);x.beginPath();x.moveTo(0,Y(base));x.lineTo(w,Y(base));x.stroke();x.setLineDash([]);
   const col=vals[vals.length-1]>=base?'#3DDC97':'#FF5C7A';
-  const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,col+'40');g.addColorStop(1,col+'00');
+  const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,col+'55');g.addColorStop(1,col+'00');
   x.beginPath();pts.forEach((p,i)=>i?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1])));x.lineTo(X(t1),h);x.lineTo(X(t0),h);x.closePath();x.fillStyle=g;x.fill();
-  x.beginPath();pts.forEach((p,i)=>i?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1])));x.strokeStyle=col;x.lineWidth=2;x.stroke();
-  const lp=pts[pts.length-1];x.fillStyle=col;x.beginPath();x.arc(X(lp[0]),Y(lp[1]),3,0,7);x.fill();
+  x.beginPath();pts.forEach((p,i)=>i?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1])));x.strokeStyle=col;x.lineWidth=2;x.lineJoin='round';x.stroke();
+  const lp=pts[pts.length-1];x.fillStyle=col;x.shadowColor=col;x.shadowBlur=8;x.beginPath();x.arc(X(lp[0]),Y(lp[1]),3.2,0,7);x.fill();x.shadowBlur=0;
 }
 function feedV(d){
-  const name=id=>{const b=d.bots.find(x=>x.id===id);return b?b.color:null};
-  $('#v-feed').innerHTML=d.feed.map(e=>`<div class="ev ${e.k}"><time>${nyTime(e.t)}</time><i style="${e.k==='buy'&&name(e.b)?'background:'+name(e.b):''}"></i><div>${esc(e.x)}</div></div>`).join('')||'<div class="empty">Тук ще се появява всяка покупка, продажба и уволнение.</div>';
+  const col=id=>{const b=d.bots.find(x=>x.id===id);return b?b.color:null};
+  $('#v-feed').innerHTML=d.feed.map(e=>{const k=e.t+'|'+e.x;const fresh=!firstLoad&&!seenFeed.has(k);seenFeed.add(k);
+    return `<div class="ev ${e.k}${fresh?' fresh':''}"><time>${nyTime(e.t)}</time><i style="${e.k==='buy'&&col(e.b)?'background:'+col(e.b):''}"></i><div>${esc(e.x)}</div></div>`}).join('')||'<div class="empty">Тук ще се появява всяка покупка, продажба и уволнение.</div>';
+  if(firstLoad)d.feed.forEach(e=>seenFeed.add(e.t+'|'+e.x));
+}
+function statsV(d){
+  const S=(d.stats||[]).filter(s=>s.trades>0||s.hired>0);
+  const M=['var(--gold)','var(--silver)','var(--bronze)'];
+  $('#v-stats').innerHTML=(S.length?`<p class="note" style="text-align:left">Резултати по стратегия от всички трейдъри досега, включително уволнените. Така се вижда кои сетъпи наистина работят върху penny stocks.</p>`:'')+S.map((s,i)=>`<article class="st">
+    <div class="h">${i<3&&s.pnl>0?`<span class="medal" style="background:${M[i]}">${i+1}</span>`:''}<b>${esc(s.style)}</b><span class="${cls(s.pnl)}">${money0(s.pnl)}</span></div>
+    <div class="wr"><span>${s.winRate==null?'—':s.winRate+'%'} печеливши</span><span class="bar"><i style="width:${s.winRate||0}%"></i></span></div>
+    <div class="nums"><span>Сделки <b>${s.trades}</b></span><span>Средно <b class="${cls(s.avgPct)}">${s.avgPct==null?'—':pct(s.avgPct)}</b></span><span>Най-добра <b class="up">${s.trades?pct(s.best):'—'}</b></span><span>Най-лоша <b class="down">${s.trades?pct(s.worst):'—'}</b></span><span>Държи средно <b>${s.avgMin==null?'—':s.avgMin+' мин'}</b></span><span>Трейдъри <b>${s.hired}</b> · уволнени <b class="${s.fired?'down':''}">${s.fired}</b></span></div>
+  </article>`).join('')||'<div class="empty">Статистиката ще се появи след първите сделки.</div>';
 }
 function firedV(d){
-  $('#v-fired').innerHTML=d.fired.map(f=>`<article class="grave"><div class="top"><span class="av" style="background:${f.color}">${esc(initials(f.name))}</span><div class="who"><b>${esc(f.name)}</b><span><span class="tag">${esc(f.style)}</span>издържа ${dur(f.firedAt-f.hiredAt)} · ${f.wins} печ. / ${f.losses} заг.</span></div><div class="pnl"><b class="${cls(f.pnl)}">${money(f.pnl,true)}</b><span class="stamp">УВОЛНЕН</span></div></div><p>${esc(f.desc.buy)}</p></article>`).join('')||'<div class="empty">Още никой не е уволнен. Засега.</div>';
+  $('#v-fired').innerHTML=d.fired.map(f=>`<article class="grave"><div class="top"><span class="av" style="background:${f.color}">${esc(initials(f.name))}</span><div class="who"><b>${esc(f.name)}</b><span><span class="tag">${esc(f.style)}</span>издържа ${dur(f.firedAt-f.hiredAt)} · ${f.wins} печ. / ${f.losses} заг.</span></div><div class="pnl"><b class="${cls(f.pnl)}">${money0(f.pnl)}</b><span class="stamp">УВОЛНЕН</span></div></div>${f.why?`<span class="why">Уволнен ${esc(f.why)}.</span>`:''}<p>${esc(f.desc.buy)}</p></article>`).join('')||'<div class="empty">Още никой не е уволнен. Засега.</div>';
 }
+function nextBoom(){
+  const f=boomQ.shift();if(!f){$('#boom').hidden=true;return}
+  const nb=D&&D.bots.slice().sort((a,b)=>b.hiredAt-a.hiredAt).find(b=>b.hiredAt>=f.firedAt);
+  const el=$('#boom');el.hidden=false;
+  el.innerHTML=`<div class="card"><span class="av" style="background:${f.color}">${esc(initials(f.name))}</span><div class="nm">${esc(f.name)}</div><div class="big">УВОЛНЕН!</div><div class="why">${esc(f.style)} · ${f.why?esc(f.why):''} · ${money0(f.pnl)} общо</div>${nb?`<div class="next">На негово място идва <b>${esc(nb.name)}</b> (${esc(nb.style)}).</div>`:''}<small>Докосни, за да продължиш</small></div>`;
+  clearTimeout(el._t);el._t=setTimeout(nextBoom,4200);
+}
+$('#boom').onclick=()=>{clearTimeout($('#boom')._t);nextBoom()};
 $('.seg').onclick=e=>{const b=e.target.closest('button');if(!b)return;tab=b.dataset.v;try{localStorage.setItem('fu-tab',tab)}catch(_){}if(D)render()};
-$('#v-board').addEventListener('click',e=>{if(e.target.closest('.detail'))return;const c=e.target.closest('.bot');if(!c)return;const id=c.dataset.id;open.has(id)?open.delete(id):open.add(id);render()});
+$('#v-board').addEventListener('click',e=>{if(e.target.closest('.detail'))return;const c=e.target.closest('.bot');if(!c)return;const id=c.dataset.id;open.has(id)?open.delete(id):open.add(id);board(D)});
 $('#v-board').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){const c=e.target.closest('.bot');if(c){e.preventDefault();c.click()}}});
 setInterval(()=>{if(!lastFetch)return;const s=Math.round((Date.now()-lastFetch)/1000);$('#upd').textContent=`Обновено преди ${s} с`+(D&&D.src==='alpaca-iex'?' · резервни данни (Alpaca IEX)':'')},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 addEventListener('resize',()=>{if(D)document.querySelectorAll('canvas.spark').forEach(c=>spark(c,D.bots.find(x=>x.id===c.dataset.id)))});
-load();setInterval(()=>{if(!document.hidden)load()},20000);
+load();setInterval(()=>{if(!document.hidden)load()},15000);
 })();
 </script>
 <!-- PWA: бутон „Инсталирай“ + упътване за iPhone + „Отвори в Chrome“ от Viber/Messenger/Instagram -->
