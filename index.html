@@ -74,7 +74,7 @@ main .wrap{display:flex;flex-direction:column;gap:18px;padding-block:16px calc(1
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 .chip b{color:var(--ink);font-family:var(--mono)}
 .chip.red b{color:var(--down)}
-.race{width:100%;height:150px;display:block;margin-top:12px}
+.race{width:100%;height:180px;display:block;margin-top:4px;touch-action:pan-y}
 .raceKey{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-weight:700;letter-spacing:.06em;text-transform:uppercase}
 /* заглавия на секции */
 .h2{display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px -6px}
@@ -316,8 +316,9 @@ nav.tabs button[aria-selected="true"] svg{transform:translateY(-1px) scale(1.12)
       <div class="big" id="sTotal">—</div>
       <div class="allt">Общо от началото <b id="sAll">—</b> <span id="sAllNote"></span></div>
       <div class="chips"><span class="chip">Сделки <b id="sTrades">—</b></span><span class="chip">В позиция <b id="sIn">—</b></span><span class="chip red">Уволнени днес <b id="sFired">—</b></span><span class="chip" id="sFiredPnl" hidden>От уволнените <b></b></span></div>
-      <canvas class="race" id="race" aria-label="Надбягването: печалбата на всеки трейдър през деня"></canvas>
-      <div class="raceKey"><span id="raceFrom"></span><span>Надбягването днес</span><span id="raceTo"></span></div>
+      <div class="ctool" style="margin-top:12px"><span class="seg2" id="htf"><button data-htf="1h">1Ч</button><button data-htf="1d">1Д</button><button data-htf="1w">1С</button><button data-htf="all">Всичко</button></span><span class="seg2"><button data-hv="money">Пари</button><button data-hv="race">Трейдъри</button></span></div>
+      <canvas class="race" id="race" aria-label="Графика на парите на отбора"></canvas>
+      <div class="raceKey"><span id="raceFrom"></span><span id="raceLbl">плъзни с пръст по графиката</span><span id="raceTo"></span></div>
     </div>
     <div class="h2" style="margin-top:18px"><b>Подиум</b><span>докосни трейдър</span></div>
     <div class="podium" id="podium" style="margin-top:22px"></div>
@@ -432,9 +433,27 @@ function tape(d){
   if(run.dataset.k!==key){run.dataset.k=key;run.style.animationDuration=Math.max(22,items.length*4)+'s'}
 }
 /* ——— надбягването ——— */
-function race(d){
-  const cv=$('#race');if(!cv||tab!=='board')return;const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return;cv.width=w*r;cv.height=h*r;const x=cv.getContext('2d');x.scale(r,r);
-  const L=d.bots.map((b,i)=>{const p=b.hist||[];if(p.length<2)return null;const base=p[0][1];return{b,i,pts:p.map(q=>[q[0],q[1]-base])}}).filter(Boolean);
+function race(d,hx){
+  const cv=$('#race');if(!cv||tab!=='board')return;
+  document.querySelectorAll('[data-htf]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.htf===hTf));document.querySelectorAll('[data-hv]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.hv===hView));
+  $('#htf').style.visibility=hView==='money'?'visible':'hidden';
+  if(!cv._s){cv._s=1;scrub(cv,v=>race(D,v))}
+  if(hView==='money')return teamChart(d,cv,hx);
+  $('#raceLbl').textContent='всеки трейдър днес';return raceLines(d,cv);
+}
+function tfFilter(pts,tf,d){if(!pts||!pts.length)return [];const last=pts[pts.length-1][0];
+  const from=tf==='1h'?last-3600e3:tf==='1d'?((d.session&&d.session.start)||last-86400e3):tf==='1w'?last-7*86400e3:0;
+  const f=pts.filter(p=>p[0]>=from);return f.length>=2?f:pts.slice(-Math.min(pts.length,2))}
+function teamChart(d,cv,hx){
+  const pts=tfFilter(d.teamHist||[],hTf,d);
+  const o={fmt:v=>money(v,true),empty:'Графиката на парите се трупа от сега нататък',label:true};
+  $('#raceFrom').textContent='';$('#raceTo').textContent='';
+  $('#raceLbl').textContent=hx==null?(hTf==='1h'?'последния час':hTf==='1d'?'днес':hTf==='1w'?'последната седмица':'от началото')+' · плъзни с пръст':'';
+  if(hx!=null||raceDrawn||reduce)return lineChart(cv,pts,o,hx);
+  raceDrawn=true;const s0=performance.now();const step=t=>{const k=Math.min(1,(t-s0)/1100);lineChart(cv,pts,{...o,prog:1-Math.pow(1-k,3)});if(k<1&&!cv._on)requestAnimationFrame(step)};requestAnimationFrame(step);
+}
+function raceLines(d,cv){const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return;cv.width=w*r;cv.height=h*r;const x=cv.getContext('2d');x.scale(r,r);
+  const L=d.bots.map((b,i)=>{const p=tfFilter(b.hist||[],'1d',d);if(p.length<2)return null;const base=p[0][1];return{b,i,pts:p.map(q=>[q[0],q[1]-base])}}).filter(Boolean);
   if(!L.length){x.fillStyle='#9A8FA6';x.font='600 12px Onest';x.textAlign='center';x.fillText('Надбягването започва с първите минути на търговия',w/2,h/2);$('#raceFrom').textContent='';$('#raceTo').textContent='';return}
   let t0=Infinity,t1=-Infinity,mn=0,mx=0;for(const l of L)for(const [t,v] of l.pts){t0=Math.min(t0,t);t1=Math.max(t1,t);mn=Math.min(mn,v);mx=Math.max(mx,v)}
   const pad=Math.max(5,(mx-mn)*.12);mn-=pad;mx+=pad;
@@ -501,12 +520,13 @@ function openSheet(id,refresh){
   box.innerHTML=`<div class="grab"></div>
     <div class="sh-top" style="--c:${b.color}"><span class="av">${esc(initials(b.name))}</span><div class="who"><b>${esc(b.name)}</b><span>№${i+1} · ${esc(b.style)} · капитал ${money(b.equity)}</span></div></div>
     <div class="sh-pl ${cls(b.today)}">${money(b.today,true)} <span style="font-size:14px;font-family:var(--mono)">${pct(b.todayPct)} днес</span></div>
-    <div class="sh-h" style="margin-top:4px">Как вървят парите му днес</div>
-    <canvas class="bigspark" id="bigspark"></canvas>
+    <div class="sh-h" style="margin-top:4px">Как вървят парите му</div>
+    <div class="ctool"><span class="seg2"><button data-btf="1h" aria-pressed="${bTf==='1h'}">1Ч</button><button data-btf="1d" aria-pressed="${bTf==='1d'}">1Д</button></span><span class="hint" style="font-size:11px;color:var(--muted);align-self:center">B купи · S продаде · плъзни</span></div>
+    <canvas class="bigspark" id="bigspark" style="height:150px"></canvas>
     <div class="mini"><div><b class="up">${b.wins}</b><span>печеливши</span></div><div><b class="down">${b.losses}</b><span>губещи</span></div><div><b class="${cls(b.total)}">${money0(b.total)}</b><span>общо</span></div><div><b>${b.wins+b.losses?Math.round(b.wins/(b.wins+b.losses)*100)+'%':'—'}</b><span>успех</span></div></div>
     ${b.pending?`<div class="pend">Чака да купи <b>${esc(b.pending.s)}</b> с лимитна поръчка до <b>${px(b.pending.limit)}</b> — изпълнява се на следващата минута, ако цената не избяга.</div>`:''}
     ${b.positions.length?`<div class="sh-h">В сделка сега</div><div class="pos2">${b.positions.map(p=>`<div class="p${chartSel&&chartSel.kind==='pos'&&chartSel.sym===p.sym?' sel':''}" data-csym="${esc(p.sym)}"><span><b>${esc(p.sym)}</b> · ${p.qty.toLocaleString('bg-BG')} бр. · ${px(p.entry)}→${px(p.now)}<span class="f" style="display:block;font-size:10.5px;color:var(--muted)">от ${nyTime(p.t)} · ${dur((D.simMs||Date.now())-p.t)} · докосни за графика</span></span><span class="r ${cls(p.pnl)}"><b>${money(p.pnl,true)}</b><small>${pct(p.pct!=null?p.pct:(p.now/p.entry-1)*100)}</small></span></div>`).join('')}</div>`:''}
-    ${chartSel?`<div class="sh-h" id="ctitle"></div><div class="chartbox" id="cbox">${b.positions.length>1&&chartSel.kind==='pos'?`<div class="ctabs">${b.positions.map(p=>`<button data-csym="${esc(p.sym)}" aria-pressed="${p.sym===chartSel.sym}">${esc(p.sym)}</button>`).join('')}</div>`:''}${chartSel.kind==='trade'&&b.positions.length?`<div class="ctabs"><button data-csym="${esc(b.positions[0].sym)}" aria-pressed="false">← към отворената сделка</button></div>`:''}<div class="ctool"><span class="seg2"><button data-cmode="line" aria-pressed="${cMode==='line'}">Линия</button><button data-cmode="candle" aria-pressed="${cMode==='candle'}">Свещи</button></span><span class="seg2"><button data-crange="near" aria-pressed="${cRange==='near'}">${chartSel.kind==='pos'?'Около входа':'Сделката'}</button><button data-crange="day" aria-pressed="${cRange==='day'}">Целия ден</button></span></div><canvas class="cchart" id="cchart"></canvas><div class="clegend" id="clegend"></div></div>`:''}
+    ${chartSel?`<div class="sh-h" id="ctitle"></div><div class="chartbox" id="cbox">${b.positions.length>1&&chartSel.kind==='pos'?`<div class="ctabs">${b.positions.map(p=>`<button data-csym="${esc(p.sym)}" aria-pressed="${p.sym===chartSel.sym}">${esc(p.sym)}</button>`).join('')}</div>`:''}${chartSel.kind==='trade'&&b.positions.length?`<div class="ctabs"><button data-csym="${esc(b.positions[0].sym)}" aria-pressed="false">← към отворената сделка</button></div>`:''}<div class="ctool"><span class="seg2"><button data-cmode="line" aria-pressed="${cMode==='line'}">Линия</button><button data-cmode="candle" aria-pressed="${cMode==='candle'}">Свещи</button></span><span class="seg2"><button data-crange="near" aria-pressed="${cRange==='near'}">Сделката</button><button data-crange="1h" aria-pressed="${cRange==='1h'}">1Ч</button><button data-crange="day" aria-pressed="${cRange==='day'}">1Д</button></span></div><canvas class="cchart" id="cchart"></canvas><div class="clegend" id="clegend"></div></div>`:''}
     <div class="sh-h">Риск от уволнение</div>
     <div class="riskbox">${prog.map(p=>`<div class="rline"><span>${p[0]} · <b style="color:var(--ink)">${p[2]}</b></span><span class="bar"><i style="width:${Math.round(p[1]*100)}%"></i></span></div>`).join('')}</div>
     <div class="sh-h">Стратегия</div>
@@ -514,9 +534,10 @@ function openSheet(id,refresh){
     <div class="sh-h">Сделки <span style="text-transform:none;letter-spacing:0;font-family:var(--body);font-weight:600">· докосни за графика</span></div>
     <div class="trades">${b.trades.length?b.trades.slice(0,15).map((t,k)=>`<div class="tr${chartSel&&chartSel.kind==='trade'&&chartSel.i===k?' sel':''}" data-tr="${k}"><span>${nyTime(t.out)}</span><span>${esc(t.sym)} ${t.qty.toLocaleString('bg-BG')} бр. ${px(t.entry)}→${px(t.exit)}${t.fees!=null?`<span class="f">такси ${money(t.fees)} · ${WHYT[t.why]||''}</span>`:''}</span><span class="${cls(t.pnl)}" style="text-align:right">${money(t.pnl,true)}<span class="f" style="text-align:right;color:inherit">${pct(t.pct)}</span></span></div>`).join(''):'<span class="empty" style="padding:10px">Още няма сделки.</span>'}</div>`;
   if(!refresh){s.hidden=false;document.body.style.overflow='hidden'}else box.scrollTop=keep;
-  const bs=$('#bigspark');spark(bs,b);scrub(bs,hx=>spark(bs,b,false,hx));drawSel(b);
+  const bs=$('#bigspark');botChart(b);scrub(bs,hx=>{const bb=D.bots.find(x=>x.id===sheetId);if(bb)botChart(bb,hx)});drawSel(b);
 }
 $('#sheetBox').addEventListener('click',e=>{const b=D&&D.bots.find(x=>x.id===sheetId);if(!b)return;
+  const bt=e.target.closest('[data-btf]');if(bt){bTf=bt.dataset.btf;try{localStorage.setItem('fu-btf',bTf)}catch(_){}openSheet(sheetId,true);return}
   const cm=e.target.closest('[data-cmode]');if(cm){cMode=cm.dataset.cmode;try{localStorage.setItem('fu-cmode',cMode)}catch(_){}openSheet(sheetId,true);return}
   const cr=e.target.closest('[data-crange]');if(cr){cRange=cr.dataset.crange;try{localStorage.setItem('fu-crange',cRange)}catch(_){}openSheet(sheetId,true);return}
   const cs=e.target.closest('[data-csym]');if(cs){chartSel={kind:'pos',sym:cs.dataset.csym};openSheet(sheetId,true);return}
@@ -551,8 +572,44 @@ function spark(cv,b,mini,hx){
     const txt=`${money(q[1])}  ${money(ch,true)}  ${nyTime(q[0])}`;x.font='800 11px JetBrains Mono';const tw=x.measureText(txt).width+16;const bx=Math.min(Math.max(0,xx-tw/2),w-tw);
     x.fillStyle='rgba(12,9,16,.92)';x.strokeStyle=ch>=0?'#2BF5A0':'#FF2E63';x.beginPath();x.roundRect?x.roundRect(bx,14,tw,22,7):x.rect(bx,14,tw,22);x.fill();x.stroke();x.fillStyle=ch>=0?'#2BF5A0':'#FF2E63';x.textAlign='left';x.fillText(txt,bx+8,29)}
 }
+/* ——— линейна графика като в Trading 212: пари във времето, B/S, плъзгане ——— */
+const tlabel=(t,span)=>span>20*3600e3?new Date(t).toLocaleDateString('bg-BG',{timeZone:'America/New_York',day:'numeric',month:'numeric'})+' '+nyTime(t):nyTime(t);
+function badge(x,cx,cy,k,big){const r=big?10:7.5,col=k==='B'?'#2BF5A0':'#FF2E63';
+  x.save();x.shadowColor=col;x.shadowBlur=big?12:6;x.fillStyle=col;x.beginPath();x.arc(cx,cy,r,0,7);x.fill();x.restore();
+  x.strokeStyle='#0C0910';x.lineWidth=2;x.beginPath();x.arc(cx,cy,r,0,7);x.stroke();
+  x.fillStyle='#0C0910';x.font=`900 ${big?11:8.5}px Unbounded, Arial Black, sans-serif`;x.textAlign='center';x.textBaseline='middle';x.fillText(k,cx,cy+.5);x.textBaseline='alphabetic'}
+function lineChart(cv,pts,o={},hx){
+  if(!cv)return;const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return;cv.width=w*r;cv.height=h*r;const x=cv.getContext('2d');x.scale(r,r);
+  if(!pts||pts.length<2){x.fillStyle='#9A8FA6';x.font='600 12px Onest';x.textAlign='center';x.fillText(o.empty||'Още няма данни',w/2,h/2);return}
+  const fmt=o.fmt||money0,RW=62,BH=16,H=h-BH,n=pts.length,base=o.base!=null?o.base:pts[0][1],vals=pts.map(p=>p[1]);
+  let mn=Math.min(base,...vals),mx=Math.max(base,...vals);if(mx-mn<2){mx+=1;mn-=1}const pad=(mx-mn)*.12;mn-=pad;mx+=pad;
+  const X=i=>4+i/(n-1)*(w-RW-10),Y=v=>8+(mx-v)/(mx-mn)*(H-16),span=pts[n-1][0]-pts[0][0];
+  x.font='700 9.5px JetBrains Mono';x.textAlign='left';
+  for(let k=0;k<4;k++){const v=mn+(mx-mn)*(k+.5)/4,y=Y(v);x.strokeStyle='rgba(255,255,255,.05)';x.lineWidth=1;x.beginPath();x.moveTo(0,y);x.lineTo(w-RW,y);x.stroke();x.fillStyle='rgba(154,143,166,.75)';x.fillText(fmt(v),w-RW+4,y+3)}
+  x.strokeStyle='rgba(154,143,166,.4)';x.setLineDash([3,4]);x.beginPath();x.moveTo(0,Y(base));x.lineTo(w-RW,Y(base));x.stroke();x.setLineDash([]);
+  const m=Math.max(2,Math.round((o.prog==null?1:o.prog)*n));
+  const col=vals[n-1]>=base?'#2BF5A0':'#FF2E63';
+  const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,col+'50');g.addColorStop(1,col+'00');
+  x.beginPath();for(let i=0;i<m;i++)i?x.lineTo(X(i),Y(vals[i])):x.moveTo(X(i),Y(vals[i]));x.lineTo(X(m-1),H);x.lineTo(X(0),H);x.closePath();x.fillStyle=g;x.fill();
+  x.beginPath();for(let i=0;i<m;i++)i?x.lineTo(X(i),Y(vals[i])):x.moveTo(X(i),Y(vals[i]));x.strokeStyle=col;x.lineWidth=2.2;x.lineJoin='round';x.shadowColor=col;x.shadowBlur=8;x.stroke();x.shadowBlur=0;
+  const at=t=>{if(t<pts[0][0]||t>pts[n-1][0]+90000)return -1;let i=pts.findIndex(p=>p[0]>=t);return i<0?n-1:i};
+  if(m===n){for(const mk of (o.marks||[])){const i=at(mk.t);if(i<0)continue;badge(x,X(i),Y(vals[i])+(mk.k==='B'?12:-12),mk.k,mk.big)}
+    const ly=Y(vals[n-1]);x.fillStyle=col;x.beginPath();x.arc(X(n-1),ly,4,0,7);x.fill();
+    x.beginPath();x.roundRect?x.roundRect(w-RW+1,ly-9,RW-1,18,5):x.rect(w-RW+1,ly-9,RW-1,18);x.fill();x.fillStyle='#0C0910';x.font='800 10px JetBrains Mono';x.textAlign='center';x.fillText(fmt(vals[n-1]),w-RW/2,ly+3.5)}
+  x.fillStyle='rgba(154,143,166,.85)';x.font='700 10px JetBrains Mono';x.textAlign='left';x.fillText(tlabel(pts[0][0],span),2,h-3);x.textAlign='right';x.fillText(tlabel(pts[n-1][0],span),w-RW-2,h-3);
+  if(hx!=null){const i=Math.max(0,Math.min(n-1,Math.round((hx-4)/(w-RW-10)*(n-1))));const xx=X(i),yy=Y(vals[i]),ch=vals[i]-base;
+    x.strokeStyle='rgba(246,241,234,.55)';x.lineWidth=1;x.setLineDash([3,3]);x.beginPath();x.moveTo(xx,0);x.lineTo(xx,H);x.stroke();x.setLineDash([]);
+    x.fillStyle='#F6F1EA';x.beginPath();x.arc(xx,yy,4.5,0,7);x.fill();
+    const txt=`${fmt(vals[i])}  ${money(ch,true)}  ${tlabel(pts[i][0],span)}`;x.font='800 11px JetBrains Mono';const tw=x.measureText(txt).width+16;const bx=Math.min(Math.max(0,xx-tw/2),w-tw);
+    x.fillStyle='rgba(12,9,16,.94)';x.strokeStyle=ch>=0?'#2BF5A0':'#FF2E63';x.beginPath();x.roundRect?x.roundRect(bx,1,tw,22,7):x.rect(bx,1,tw,22);x.fill();x.stroke();x.fillStyle=ch>=0?'#2BF5A0':'#FF2E63';x.textAlign='left';x.fillText(txt,bx+8,16)}
+}
+function botMarks(b,sel){const out=[];(b.trades||[]).forEach((t,k)=>{const big=sel&&sel.kind==='trade'&&sel.i===k;out.push({t:t.in,k:'B',p:t.entry,sym:t.sym,big},{t:t.out,k:'S',p:t.exit,sym:t.sym,big})});
+  (b.positions||[]).forEach(p=>out.push({t:p.t,k:'B',p:p.entry,sym:p.sym,big:sel&&sel.kind==='pos'&&sel.sym===p.sym}));return out}
+function botChart(b,hx){const cv=$('#bigspark');if(!cv)return;const pts=tfFilter(b.hist||[],bTf,D);
+  lineChart(cv,pts,{fmt:money0,base:bTf==='1d'?(b.hist&&b.hist[0]?b.hist[0][1]:undefined):undefined,marks:botMarks(b),empty:'Графиката ще се появи с първите минути'},hx)}
 /* ——— графика на акцията (свещи) ——— */
-const chartCache={};let chartSel=null,cMode='line',cRange='near';
+const chartCache={};let chartSel=null,cMode='line',cRange='near',hTf='1d',hView='money',bTf='1d';
+try{hTf=localStorage.getItem('fu-htf')||'1d';hView=localStorage.getItem('fu-hv')||'money';bTf=localStorage.getItem('fu-btf')||'1d'}catch(e){}
 try{cMode=localStorage.getItem('fu-cmode')||'line';cRange=localStorage.getItem('fu-crange')||'near'}catch(e){}
 async function getChart(sym,rg){const key=sym+(rg?'|'+rg.from:'');const c=chartCache[key];if(c&&(rg||Date.now()-c.at<20000))return c.d;
   try{const r=await fetch('/api/chart?s='+encodeURIComponent(sym)+(rg?`&from=${rg.from}&to=${rg.to}`:''));const d=await r.json();if(!r.ok||!d.bars)throw 0;chartCache[key]={at:Date.now(),d};return d}catch(e){return c?c.d:null}}
@@ -561,13 +618,14 @@ function candles(cv,d,o,hx){
   if(!d||!d.bars||!d.bars.length){x.fillStyle='#9A8FA6';x.font='600 12px Onest';x.textAlign='center';x.fillText(d===false?'Зарежда графиката…':'Няма данни за графиката в момента',w/2,h/2);return}
   // VWAP от началото на сесията
   let pv=0,vv=0;const vw=d.bars.map(b=>{const tp=(b[2]+b[3]+b[4])/3;pv+=tp*b[5];vv+=b[5];return vv?pv/vv:b[4]});
-  const from=cRange==='day'?d.bars[0][0]:(o.from||d.bars[0][0]),to=cRange==='day'?d.bars[d.bars.length-1][0]:(o.to||d.bars[d.bars.length-1][0]);
+  const lastT=d.bars[d.bars.length-1][0];let from,to;
+  if(cRange==='day'){from=d.bars[0][0];to=lastT}else if(cRange==='1h'){to=o.to?Math.min(lastT,o.to):lastT;from=to-60*60000}else{from=o.from||d.bars[0][0];to=o.to||lastT}
   let idx=d.bars.map((b,i)=>i).filter(i=>d.bars[i][0]>=from&&d.bars[i][0]<=to);if(idx.length<8)idx=d.bars.map((b,i)=>i).slice(-60);
   const B=idx.map(i=>d.bars[i]);const RW=58,VH=h*.17,PH=h-VH-18;
   let mn=Math.min(...B.map(b=>b[3])),mx=Math.max(...B.map(b=>b[2]));for(const v of [o.entry,o.stop,o.tp,o.exit])if(v){mn=Math.min(mn,v);mx=Math.max(mx,v)}
   const pad=(mx-mn)*.08||mx*.01;mn-=pad;mx+=pad;
   const cw=(w-RW)/B.length,X=i=>i*cw+cw/2,Y=v=>4+(mx-v)/(mx-mn)*(PH-8);
-  x.strokeStyle='rgba(255,255,255,.05)';x.lineWidth=1;for(let k=1;k<4;k++){const yy=PH*k/4;x.beginPath();x.moveTo(0,yy);x.lineTo(w-RW,yy);x.stroke()}
+  x.lineWidth=1;x.font='700 9.5px JetBrains Mono';x.textAlign='left';for(let k=0;k<5;k++){const v=mn+(mx-mn)*(k+.5)/5,yy=Y(v);x.strokeStyle='rgba(255,255,255,.05)';x.beginPath();x.moveTo(0,yy);x.lineTo(w-RW,yy);x.stroke();x.fillStyle='rgba(154,143,166,.7)';x.fillText(px(v),w-RW+4,yy+3)}
   const vmax=Math.max(...B.map(b=>b[5]))||1;
   B.forEach((b,i)=>{const up=b[4]>=b[1];x.fillStyle=up?'rgba(43,245,160,.22)':'rgba(255,46,99,.22)';const vh=b[5]/vmax*VH;x.fillRect(X(i)-Math.max(1,cw*.35),h-18-vh,Math.max(1.5,cw*.7),vh)});
   if(cMode==='line'){ // като в Trading 212: плавна линия с градиент
@@ -584,9 +642,10 @@ function candles(cv,d,o,hx){
   line(o.tp,'#2BF5A0',[5,4],px(o.tp));line(o.stop,'#FF2E63',[5,4],px(o.stop));line(o.entry,'#FF6A1A',[],px(o.entry));
   if(o.exit)line(o.exit,o.exit>=o.entry?'#2BF5A0':'#FF2E63',[2,3],px(o.exit));
   else{const last=B[B.length-1][4];const y=Y(last);x.fillStyle='#F6F1EA';x.beginPath();x.arc(X(B.length-1),y,3,0,7);x.fill()}
-  const mark=(t,up,col)=>{let i=B.findIndex(b=>b[0]>=t);if(i<0)i=B.length-1;const b=B[i];const xx=X(i);x.fillStyle=col;x.beginPath();
-    if(up){const y=Y(b[3])+6;x.moveTo(xx,y);x.lineTo(xx-6,y+9);x.lineTo(xx+6,y+9)}else{const y=Y(b[2])-6;x.moveTo(xx,y);x.lineTo(xx-6,y-9);x.lineTo(xx+6,y-9)}x.closePath();x.fill()};
-  if(o.tIn)mark(o.tIn,true,'#FF6A1A');if(o.tOut)mark(o.tOut,false,o.exit>=o.entry?'#2BF5A0':'#FF2E63');
+  // B = купи (зелено), S = продаде (червено) — точно на цената и минутата на сделката
+  for(const mk of (o.marks||[])){if(mk.t<B[0][0]||mk.t>B[B.length-1][0]+60000)continue;let i=B.findIndex(b=>b[0]>=mk.t);if(i<0)i=B.length-1;
+    const y=Y(mk.p),xx=X(i);x.strokeStyle=mk.k==='B'?'rgba(43,245,160,.6)':'rgba(255,46,99,.6)';x.lineWidth=1;x.beginPath();x.moveTo(xx,y);x.lineTo(xx,y+(mk.k==='B'?14:-14));x.stroke();
+    x.fillStyle='#F6F1EA';x.beginPath();x.arc(xx,y,2.5,0,7);x.fill();badge(x,xx,y+(mk.k==='B'?22:-22),mk.k,mk.big)}
   x.fillStyle='rgba(154,143,166,.85)';x.font='700 10px JetBrains Mono';x.textAlign='left';x.fillText(nyTime(B[0][0]),2,h-4);x.textAlign='right';x.fillText(nyTime(B[B.length-1][0]),w-RW-2,h-4);
   x.textAlign='center';x.fillText(nyTime(B[Math.floor(B.length/2)][0]),(w-RW)/2,h-4);
   // кръстче при плъзгане с пръст: цена, промяна от входа/началото, час
@@ -611,6 +670,7 @@ async function drawSel(b){
   if(chartSel.kind==='trade'){const t=b.trades[chartSel.i];if(t&&!(D.session&&t.out>=D.session.start))rg={from:t.in-90*60000,to:t.out+60*60000}}
   if(chartSel.kind!=='pos'){const t=b.trades[chartSel.i];if(!t)return;sym=t.sym;o={entry:t.entry,exit:t.exit,stop:t.stop,tp:t.tp,tIn:t.in,tOut:t.out,from:t.in-30*60000,to:t.out+20*60000};
     $('#clegend').innerHTML=`<span><b>${esc(t.sym)}</b> ${nyTime(t.in)}→${nyTime(t.out)}</span><span>вход <b>${px(t.entry)}</b></span><span>изход <b>${px(t.exit)}</b></span><span>такси <b>${t.fees!=null?money(t.fees):'—'}</b></span><span>резултат <b class="${cls(t.pnl)}">${money(t.pnl,true)} · ${pct(t.pct)}</b></span><span>${new Date(t.out).toLocaleDateString('bg-BG',{timeZone:'America/New_York',day:'numeric',month:'short'})}</span>`}
+  o.marks=botMarks(b,chartSel).filter(m=>m.sym===sym);
   $('#ctitle').textContent=chartSel.kind==='pos'?'Графика · '+sym+' на живо':'Графика на сделката · '+sym;
   const c=chartCache[sym+(rg?'|'+rg.from:'')];candles(cv,c?c.d:false,o);scrub(cv,hx=>{const k=cv._c;if(k)candles(cv,k.d,k.o,hx)});
   const d=await getChart(sym,rg);if($('#cchart')===cv&&sheetId===b.id&&!cv._on)candles(cv,d,o);
@@ -642,6 +702,8 @@ function nextBoom(){
   clearTimeout(el._t);el._t=setTimeout(nextBoom,5200);
 }
 $('#boom').onclick=()=>{clearTimeout($('#boom')._t);nextBoom()};
+$('#hero').addEventListener('click',e=>{const t=e.target.closest('[data-htf]'),v=e.target.closest('[data-hv]');
+  if(t){hTf=t.dataset.htf;try{localStorage.setItem('fu-htf',hTf)}catch(_){}}else if(v){hView=v.dataset.hv;try{localStorage.setItem('fu-hv',hView)}catch(_){}}else return;raceDrawn=false;race(D)});
 $('#tabs').onclick=e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.v)};
 const pick=e=>{const c=e.target.closest('[data-id]');if(c&&!c.matches('canvas'))openSheet(c.dataset.id)};
 $('#podium').addEventListener('click',pick);$('#rows').addEventListener('click',pick);
