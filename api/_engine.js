@@ -241,35 +241,38 @@ function sig(g, I, i) {
 }
 const fmtP = n => String(n).replace('.', ',');
 function describe(g) {
+  // обяснено с прости думи — какво чака, кога продава и защо
   const T = g.trigger;
-  const trig = {
-    orb: `цената пробие диапазона на първите ${T.n} минути (ORB) с обем над средния`,
-    donchian20: `цената пробие най-високото от последните 20 дни с обем ${fmtP(T.k)}× над средния`,
-    pdh_break: 'цената пробие вчерашния връх със зелена свещ',
-    hod_break: `акцията се отдръпне поне ${T.pull}% и после направи нов връх за деня`,
-    bull_flag: `има бичи флаг: ръст поне ${T.run}%, спокойно отдръпване с по-малък обем и пробив нагоре`,
-    fib_bounce: `цената се върне до Фибоначи ${T.lvl === 0.5 ? '50%' : '61,8%'} от дневния ръст и отскочи`,
-    red_to_green: 'акцията мине от червено в зелено (над вчерашното затваряне) с обем',
-    gap_go: `акцията е отворила с гап над ${T.g}% и пробие върха на първите 5 минути`,
-    vwap_bounce: 'цената, която е над VWAP, се отдръпне до VWAP и отскочи',
-    stoch_cross: `Стохастикът се обърне нагоре под ${T.lvl}`,
-    ema_cross: `бързата EMA(${T.f}) пресече нагоре бавната EMA(${T.s})`,
-    rsi_bounce: `RSI(${T.n}) излезе нагоре от зоната под ${T.th}`,
-    macd_cross: 'MACD пресече сигналната линия нагоре под нулата',
-    bb_bounce: 'цената отскочи от долната лента на Болинджър',
-    vol_spike: `обемът скочи ${T.k}× над средния със зелена свещ`,
+  const [trig, idea] = {
+    orb: [`цената излезе над най-високото от първите ${T.n} минути след отварянето и в същото време се търгува повече от обикновено`, 'Първите минути показват накъде иска да тръгне акцията — ако пробие нагоре, често продължава.'],
+    donchian20: [`цената стане по-висока от всичко през последния месец (20 търговски дни), а се търгува ${fmtP(T.k)} пъти повече от обикновено`, 'Нов месечен връх с много купувачи често е началото на голямо движение.'],
+    pdh_break: ['цената мине над най-високата цена от вчера', 'Вчерашният връх е „таван“ — като го пробие, пътят нагоре е по-свободен.'],
+    hod_break: [`акцията поспадне с поне ${T.pull}% от днешния си връх, а после пак го надмине`, 'Купува силна акция, която си е починала и отново тръгва нагоре.'],
+    bull_flag: [`акцията вече е скочила с поне ${T.run}%, после постои спокойно (без много продажби) и пак тръгне нагоре`, 'След силен скок и кратка почивка движението често продължава.'],
+    fib_bounce: [`акцията върне ${T.lvl === 0.5 ? 'половината' : 'около 60%'} от днешния си ръст и оттам започне да се качва`, 'Купува „на намаление“ след ръст — в момента, в който цената се обърне нагоре.'],
+    red_to_green: ['акцията мине от минус в плюс за деня (над вчерашната си цена)', 'Когато акция излезе от червено в зелено, много хора купуват наведнъж.'],
+    gap_go: [`акцията е започнала деня с над ${T.g}% по-високо от вчера и в първите минути продължи нагоре`, 'Голям сутрешен скок (обикновено заради новини) често продължава в началото.'],
+    vwap_bounce: ['цената слезе до средната си цена за деня и отскочи нагоре', 'Средната цена за деня работи като под — купува, когато цената се оттласне от него.'],
+    stoch_cross: ['акцията е била силно продавана и започне да се обръща нагоре', 'Купува, когато продавачите се изморят и цената тръгне обратно.'],
+    ema_cross: [`средната цена от последните ${T.f} минути мине над средната от последните ${T.s} минути`, 'Значи, че цената се ускорява нагоре — началото на възход.'],
+    rsi_bounce: ['акцията е паднала твърде много и твърде бързо и започне да се възстановява', 'Купува отскока след прекалено голям спад.'],
+    macd_cross: ['спадът започне да губи сила и цената се обърне нагоре', 'Хваща момента, в който падането спира.'],
+    bb_bounce: ['цената падне необичайно ниско спрямо последните минути и отскочи', 'Когато цената се отклони твърде много надолу, често се връща обратно.'],
+    vol_spike: [`изведнъж се купува ${T.k} пъти повече от обикновено и цената се качва`, 'Внезапен голям интерес към акцията често води до бърз скок.'],
   }[T.t];
   const filt = g.filters.map(F => ({
-    above_vwap: 'цената е над VWAP', above_ema: `цената е над EMA(${F.n})`, rsi_range: `RSI(14) е между ${F.lo} и ${F.hi}`,
-    day_gainer: `акцията е нагоре с над ${F.g}% за деня`, rvol: `относителният обем (RVOL) е над ${fmtP(F.k)}`,
-    vol_confirm: `обемът на свещта е над ${fmtP(F.k)}× средния`, green_streak: `последните ${F.k} свещи са зелени`,
+    above_vwap: 'цената е над средната си цена за деня', above_ema: `цената е над средната си цена от последните ${F.n} минути`, rsi_range: 'акцията не е нито прегряла, нито прекалено продавана',
+    day_gainer: `акцията вече е нагоре с поне ${F.g}% днес`, rvol: `днес се търгува ${fmtP(F.k)} пъти повече от обикновено`,
+    vol_confirm: `в тази минута се търгува поне ${fmtP(F.k)} пъти повече от обикновено`, green_streak: `последните ${F.k} минути цената е само нагоре`,
   }[F.t]));
   const buy = `Купува, когато ${trig}` + (filt.length ? `, но само ако ${filt.join(' и ')}` : '') + '.';
-  const stop = g.atr ? `стоп ${fmtP(g.atr)}× ATR под входа` : `стоп −${g.sl}%`;
-  const sell = `Цел +${g.tp}%, ${stop}` + (g.trail ? `, плъзгащ стоп ${g.trail}% под върха` : '') + (g.be ? `, стопът отива на входа след +${g.be}%` : '') +
-    `, най-много ${g.hold} мин в позиция` + (g.rsiExit ? '; излиза и ако RSI(14) мине 80' : '') + (g.vwapExit ? '; излиза и ако цената падне под VWAP' : '') + '.';
-  const size = `Влага ${Math.round(g.size * 100)}% от парите си, най-много ${g.maxPos} ${g.maxPos === 1 ? 'позиция' : 'позиции'} наведнъж.`;
-  return { buy, sell, size };
+  const stop = g.atr ? `, ако падне повече от обичайното (${fmtP(g.atr)} пъти колкото акцията мърда средно за минута)` : ` при −${g.sl}%`;
+  const sell = `С печалба продава при +${g.tp}%. Със загуба продава${stop}.` +
+    (g.trail ? ` Ако е на печалба и цената се върне с ${g.trail}% от най-високото, продава, за да запази печалбата.` : '') +
+    (g.be ? ` След +${g.be}% се пази: ако цената се върне до покупката, продава (губи само таксите).` : '') +
+    ` Не държи повече от ${g.hold} минути.` + (g.rsiExit ? ' Продава и ако акцията „прегрее“ (поскъпне твърде бързо).' : '') + (g.vwapExit ? ' Продава и ако цената падне под средната за деня.' : '');
+  const size = `Влага ${Math.round(g.size * 100)}% от парите си в една сделка и държи ${g.maxPos === 1 ? 'само по една акция наведнъж' : `най-много ${g.maxPos} акции едновременно`}.`;
+  return { buy, sell, size, idea };
 }
 const STYLE = { orb: 'ORB', donchian20: '20-дневен пробив', pdh_break: 'Вчерашен връх', hod_break: 'Нов връх на деня', bull_flag: 'Бичи флаг', fib_bounce: 'Фибоначи', red_to_green: 'Red-to-green', gap_go: 'Gap & Go', vwap_bounce: 'VWAP отскок', stoch_cross: 'Стохастик', ema_cross: 'EMA кръст', rsi_bounce: 'RSI отскок', macd_cross: 'MACD', bb_bounce: 'Болинджър', vol_spike: 'Скок в обема' };
 const NAMES = {
@@ -346,7 +349,8 @@ function closePos(st, bot, p, price, t, reason, limit = false) {
   // такси, успеваемост и рекорди
   const allFees = (p.feeIn || 0) + fees;
   bot.fees = round2((bot.fees || 0) + allFees); st.feesAll = round2((st.feesAll || 0) + allFees); st.feesDay = round2((st.feesDay || 0) + allFees);
-  st.dayClosed = (st.dayClosed || 0) + 1; if (pnl >= 0) st.dayWins = (st.dayWins || 0) + 1;
+  st.dayClosed = (st.dayClosed || 0) + 1; if (pnl > 0) st.dayWins = (st.dayWins || 0) + 1;
+  bot.closed = (bot.closed || 0) + 1; if (pnl > 0) bot.won = (bot.won || 0) + 1; bot.pctSum = round2((bot.pctSum || 0) + pct); bot.holdSum = (bot.holdSum || 0) + Math.round((t - p.t) / 60000);
   const rec = st.records = st.records || {};
   const r1 = { pct: round2(pct), pnl: round2(pnl), name: bot.name, sym: p.sym, t };
   if (!rec.best || pct > rec.best.pct) rec.best = r1;
@@ -354,11 +358,11 @@ function closePos(st, bot, p, price, t, reason, limit = false) {
   bot.trades = bot.trades.slice(0, 40);
   bot.realized = round2(bot.realized + pnl);
   const WHY = { tp: 'целта', sl: 'стопа', be: 'стопа на входа', trail: 'плъзгащия стоп', time: 'времето', rsi: 'RSI над 80', vwap: 'пада под VWAP', eod: 'края на деня', fired: 'уволнението' };
-  feed(st, t, bot.id, pnl >= 0 ? 'win' : 'loss', `${bot.name} продаде ${qtyF(p.qty)} ${p.sym} по ${pxF(px)} (${pct >= 0 ? '+' : '−'}${fmtP(Math.abs(pct).toFixed(1))}%, ${pnl >= 0 ? '+' : ''}${money(pnl)}) заради ${WHY[reason] || reason}.`);
+  feed(st, t, bot.id, pnl > 0 ? 'win' : 'loss', `${bot.name} продаде ${qtyF(p.qty)} ${p.sym} по ${pxF(px)} (${pct >= 0 ? '+' : '−'}${fmtP(Math.abs(pct).toFixed(1))}%, ${pnl >= 0 ? '+' : ''}${money(pnl)}) заради ${WHY[reason] || reason}.`);
   // статистика по стратегия (всички реални излизания)
   const k = bot.genome.trigger.t; st.stats = st.stats || {};
   const S = st.stats[k] = st.stats[k] || { style: bot.style, trades: 0, wins: 0, pnl: 0, pctSum: 0, best: 0, worst: 0, hired: 0, fired: 0, minutes: 0 };
-  S.trades++; if (pnl >= 0) S.wins++; S.pnl = round2(S.pnl + pnl); S.pctSum = round2(S.pctSum + pct); S.best = Math.max(S.best, round2(pct)); S.worst = Math.min(S.worst, round2(pct)); S.minutes += Math.round((t - p.t) / 60000);
+  S.trades++; if (pnl > 0) S.wins++; S.pnl = round2(S.pnl + pnl); S.pctSum = round2(S.pctSum + pct); S.best = Math.max(S.best, round2(pct)); S.worst = Math.min(S.worst, round2(pct)); S.minutes += Math.round((t - p.t) / 60000);
   if (reason === 'fired' || reason === 'eod') return;
   if (pnl < 0) { bot.losses++; bot.strikes++; } else { bot.wins++; bot.strikes = 0; }
 }
@@ -409,6 +413,13 @@ async function tick(nowMs = Date.now()) {
   st.lastTick = nowMs; st.simMs = nowMs;
   if (st.bots.length < N_BOTS) { const add = N_BOTS - st.bots.length; const names = []; for (let i = 0; i < add; i++) names.push(hire(st, nowMs).name); feed(st, nowMs, null, 'hired', `Отборът расте! Назначени са ${add} нови трейдъри: ${names.join(', ')}.`); }
   dedupe(st, nowMs);
+  // еднократно: статистиката отпреди реалистичните сделки (без такси и спред) се нулира, за да са процентите истински
+  if (st.statsV !== 2) {
+    st.statsV = 2;
+    for (const S of Object.values(st.stats || {})) Object.assign(S, { trades: 0, wins: 0, pnl: 0, pctSum: 0, best: 0, worst: 0, minutes: 0 });
+    for (const b of st.bots) { const tr = b.trades.filter(x => x.fees != null); b.closed = tr.length; b.won = tr.filter(x => x.pnl > 0).length; b.pctSum = round2(tr.reduce((a, x) => a + x.pct, 0)); b.holdSum = tr.reduce((a, x) => a + Math.round((x.out - x.in) / 60000), 0);
+      const S = st.stats && st.stats[b.genome.trigger.t]; if (S) for (const x of tr) { S.trades++; if (x.pnl > 0) S.wins++; S.pnl = round2(S.pnl + x.pnl); S.pctSum = round2(S.pctSum + x.pct); S.best = Math.max(S.best, x.pct); S.worst = Math.min(S.worst, x.pct); S.minutes += Math.round((x.out - x.in) / 60000); } }
+  }
   // еднократно: уволнените по-рано днес (преди тази версия) също влизат в сметката на отбора
   if (st.firedAllPnl === undefined) st.firedAllPnl = round2((st.fired || []).reduce((a, f) => a + f.pnl, 0));
   if (st.firedDayPnl === undefined) st.firedDayPnl = round2((st.fired || []).filter(f => st.day && etParts(f.firedAt).date === st.day && etParts(f.hiredAt).date === st.day).reduce((a, f) => a + f.pnl, 0));
@@ -574,9 +585,10 @@ function view(st, nowMs = Date.now()) {
   const bots = st.bots.map(b => {
     const eq = equity(b, prices);
     return {
-      id: b.id, name: b.name, color: b.color, style: b.style, desc: b.desc, gen: b.gen, hiredAt: b.hiredAt,
+      id: b.id, name: b.name, color: b.color, style: b.style, desc: describe(b.genome), gen: b.gen, hiredAt: b.hiredAt,
       equity: round2(eq), today: round2(eq - b.dayStart), todayPct: round2((eq / b.dayStart - 1) * 100), total: round2(eq - START_CASH),
-      strikes: b.strikes, wins: b.wins, losses: b.losses, cash: round2(b.cash), hist: b.hist,
+      strikes: b.strikes, wins: b.wins, losses: b.losses, closed: b.closed || 0, won: b.won || 0,
+      winRate: b.closed ? Math.round((b.won || 0) / b.closed * 100) : null, avgPct: b.closed ? round2((b.pctSum || 0) / b.closed) : null, avgHold: b.closed ? Math.round((b.holdSum || 0) / b.closed) : null, cash: round2(b.cash), hist: b.hist,
       dd: round2(Math.max(0, ((Math.max(b.peakEq || START_CASH, eq) - eq) / Math.max(b.peakEq || START_CASH, eq)) * 100)),
       risk: Math.min(1, Math.max(b.strikes / STRIKES_TO_FIRE, ((Math.max(b.peakEq || START_CASH, eq) - eq) / Math.max(b.peakEq || START_CASH, eq)) * 100 / DD_FIRE, eq < START_CASH ? (b.wins + b.losses) / LOSER_TRADES : 0)),
       positions: b.positions.map(p => { const g = b.genome, now = prices[p.sym] ?? p.entry; const trP = g.trail && p.peak > p.entry * 1.01 ? p.peak * (1 - g.trail / 100) : 0;
