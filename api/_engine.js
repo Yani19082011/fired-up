@@ -585,7 +585,7 @@ function view(st, nowMs = Date.now()) {
   const bots = st.bots.map(b => {
     const eq = equity(b, prices);
     return {
-      id: b.id, name: b.name, color: b.color, style: b.style, desc: describe(b.genome), gen: b.gen, hiredAt: b.hiredAt,
+      id: b.id, name: b.name, color: b.color, style: b.style, strat: b.genome.trigger.t, desc: describe(b.genome), gen: b.gen, hiredAt: b.hiredAt,
       equity: round2(eq), today: round2(eq - b.dayStart), todayPct: round2((eq / b.dayStart - 1) * 100), total: round2(eq - START_CASH),
       strikes: b.strikes, wins: b.wins, losses: b.losses, closed: b.closed || 0, won: b.won || 0,
       winRate: b.closed ? Math.round((b.won || 0) / b.closed * 100) : null, avgPct: b.closed ? round2((b.pctSum || 0) / b.closed) : null, avgHold: b.closed ? Math.round((b.holdSum || 0) / b.closed) : null, cash: round2(b.cash), hist: b.hist,
