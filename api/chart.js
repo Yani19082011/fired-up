@@ -18,7 +18,7 @@ module.exports = async (req, res) => {
       catch (e) { const r = await E.alpacaIntraday([s], Date.now() - 18 * 3600e3); bars = (r && r[s]) || []; }
       if (session) bars = bars.filter(b => b.t >= session.start && b.t < session.end);
     }
-    res.setHeader('cache-control', past ? 'public, s-maxage=86400' : 'public, s-maxage=20, stale-while-revalidate=40');
+    res.setHeader('cache-control', past ? 'public, s-maxage=86400' : 'public, s-maxage=10, stale-while-revalidate=10');
     res.status(200).json({ s, session, prevClose, bars: bars.map(b => [b.t, b.o, b.h, b.l, b.c, b.v]) });
   } catch (e) {
     res.setHeader('cache-control', 'no-store');

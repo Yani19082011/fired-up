@@ -4,8 +4,8 @@ module.exports = async (req, res) => {
   res.setHeader('cache-control', 'no-store');
   try {
     let st = await E.loadState();
-    if (!st || !st.lastTick || Date.now() - st.lastTick > 90000) {
-      try { const r = await E.tickWithLock(Date.now(), 60000); st = r.st || st; }
+    if (!st || !st.lastTick || Date.now() - st.lastTick > 30000) {
+      try { const r = await E.tickWithLock(Date.now(), 25000); st = r.st || st; }
       catch (e) { console.error('inline tick', e.message); if (!st) throw e; }
     }
     res.status(200).json(E.view(st));
