@@ -124,6 +124,17 @@ main .wrap{display:flex;flex-direction:column;padding-block:14px calc(112px + en
 .upd{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin-top:14px}
 /* статистика */
 .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.strat{width:100%;text-align:left;cursor:pointer}
+.strat .tg{font-size:12px;color:#C9C3E6;margin-top:1px}
+.strat .go{font-size:11.5px;font-weight:700;color:var(--cyan);margin-top:3px}
+.hero2{border-radius:22px;padding:16px;background:linear-gradient(140deg,rgba(212,255,58,.14),rgba(61,217,255,.08));border:1px solid rgba(212,255,58,.35);margin-top:12px}
+.hero2 small{font-family:var(--display);font-weight:800;font-size:10px;letter-spacing:.14em;color:var(--accent)}
+.hero2 p{margin:6px 0 0;font-size:16px;font-weight:600;line-height:1.45}
+.howl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;counter-reset:st}
+.howl li{display:grid;grid-template-columns:28px 1fr;gap:10px;font-size:14.5px;line-height:1.45;counter-increment:st}
+.howl li::before{content:counter(st);width:28px;height:28px;border-radius:9px;background:var(--accent);color:var(--bg);display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:12px}
+.warn{border-radius:18px;padding:12px 14px;background:rgba(255,61,139,.08);border:1px solid rgba(255,61,139,.4);font-size:14px;line-height:1.45}
+.warn b{display:block;font-family:var(--display);font-size:10.5px;letter-spacing:.12em;color:var(--down);margin-bottom:4px}
 .strat{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:12px;align-items:center}
 .strat b{font-size:14.5px}
 .strat .s{font-size:12px;color:var(--muted)}
@@ -341,6 +352,7 @@ nav.tabs .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;b
 </div></nav>
 
 <div class="page" id="pTrader" hidden role="dialog" aria-modal="true" aria-label="Трейдър"></div>
+<div class="page" id="pStrat" hidden role="dialog" aria-modal="true" aria-label="Стратегия"></div>
 <div class="page" id="pTrade" hidden role="dialog" aria-modal="true" aria-label="Сделка"></div>
 <div class="sheet" id="notif" hidden><div class="bx" role="dialog" aria-modal="true" aria-label="Известия" id="notifBox"></div></div>
 <div class="boom" id="boom" hidden role="dialog" aria-label="Уволнение"></div>
@@ -412,6 +424,7 @@ function render(){
   feedAll(d);stats(d);firedV(d);
   if(traderId)traderPage(true);
   if(tradeSel)tradePage(true);
+  if(stratK)stratPage();
   if(firstLoad){if(!animFired&&nf){animFired=nf;LS.set('fu-anim-fired',nf)}firstLoad=false}
   else{const fresh=d.fired.filter(f=>f.firedAt>animFired).reverse();if(fresh.length){boomQ.push(...fresh);animFired=nf;LS.set('fu-anim-fired',nf);if($('#boom').hidden)nextBoom()}}
 }
@@ -536,10 +549,10 @@ function stats(d){
   document.querySelectorAll('#stab button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.s===statsTab));
   const el=$('#statsBody');const C=2*Math.PI*18;
   if(statsTab==='strat'){const S=(d.stats||[]).filter(s=>s.trades>0||s.hired>0);
-    el.innerHTML=`<p class="note" style="margin:0 4px 8px">Коя стратегия печели наистина — сбор от всички трейдъри, и от уволнените.</p><div class="list">`+(S.map(s=>{const wr=s.winRate||0;return `<div class="card strat">
+    el.innerHTML=`<p class="note" style="margin:0 4px 8px">Коя стратегия печели наистина — сбор от всички трейдъри, и от уволнените. Докосни стратегия, за да видиш как работи с прости думи.</p><div class="list">`+(S.map(s=>{const wr=s.winRate||0;const I=SI[s.k]||{};return `<button type="button" class="card strat" data-strat="${esc(s.k)}">
       <svg width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="Успех ${wr}%"><circle cx="23" cy="23" r="18" fill="none" stroke="#2C2748" stroke-width="5"/><circle cx="23" cy="23" r="18" fill="none" stroke="${col(s.pnl)}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C*wr/100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 23 23)"/><text x="23" y="27" text-anchor="middle" font-family="Unbounded,sans-serif" font-weight="800" font-size="10" fill="#F4F2FF">${s.winRate==null?'—':wr+'%'}</text></svg>
-      <span style="min-width:0"><b>${esc(s.style)}</b><div class="s">${s.trades?`${s.wins} от ${s.trades} на печалба`:'още без сделки'} · държи ${s.avgMin==null?'—':s.avgMin+' мин'} · уволнени ${s.fired}</div></span>
-      <span class="r"><b class="d ${cls(s.pnl)}" style="font-size:14px">${money0(s.pnl,true)}</b><span class="s">средно ${pct(s.avgPct)}</span></span></div>`}).join('')||'<div class="empty">Статистиката ще се появи след първите сделки.</div>')+`</div>`+realNote(d)}
+      <span style="min-width:0"><b>${esc(s.style)}</b>${I.tag?`<div class="tg">${esc(I.tag)}</div>`:''}<div class="s">${s.trades?`${s.wins} от ${s.trades} на печалба`:'още без сделки'} · уволнени ${s.fired}</div><div class="go">Как работи ›</div></span>
+      <span class="r"><b class="d ${cls(s.pnl)}" style="font-size:14px">${money0(s.pnl,true)}</b><span class="s">средно ${pct(s.avgPct)}</span></span></button>`}).join('')||'<div class="empty">Статистиката ще се появи след първите сделки.</div>')+`</div>`+realNote(d)}
   else{const R=d.records||{};const card=(k,v,s,c)=>`<div class="card"><span class="mut" style="font-size:10.5px;font-weight:800;letter-spacing:.1em">${k}</span><span class="v" style="color:${c||'#F4F2FF'}">${v}</span><span class="mut" style="font-size:12px">${s}</span></div>`;
     el.innerHTML='<div class="recs">'+[
       R.best?card('НАЙ-ДОБРА СДЕЛКА',pct(R.best.pct),`${esc(R.best.name)} · ${esc(R.best.sym)} · ${money0(R.best.pnl,true)}`,'#D4FF3A'):card('НАЙ-ДОБРА СДЕЛКА','—','още няма'),
@@ -573,6 +586,48 @@ function realNote(d){return `<div class="card real"><b class="d" style="font-siz
   <li>Не купува повече от 10% от минутния обем; в премаркета стоповете не се задействат сами.</li>
   <li>Уволнение: ${d.strikesToFire} поредни загуби, спад ${d.ddFire}% от върха или на минус след ${d.loserTrades} сделки. Търгуват 11:00–22:55 българско време.</li></ul></div>`}
 
+/* ——— стратегиите с прости думи ——— */
+const SI={
+ orb:{tag:'Пробив след първите минути',idea:'Първите минути след отварянето показват накъде иска да тръгне акцията. Ако пробие нагоре, често продължава.',how:['Гледа колко най-високо е стигнала акцията в първите 5, 15 или 30 минути след отварянето.','Чака цената да мине над тази граница.','Купува само ако в този момент се търгува повече от обикновено — значи има истински купувачи.'],fail:'Пробивът се оказва фалшив и цената веднага се връща под границата.'},
+ donchian20:{tag:'Нов връх за месеца',idea:'Когато акция стигне най-високата си цена за цял месец и много хора я купуват, това често е началото на голямо движение.',how:['Гледа най-високата цена от последните 20 търговски дни (около месец).','Купува, когато днес цената мине над нея.','Иска в този момент да се търгува 1,5–3 пъти повече от обикновено.'],fail:'Акцията вече е скочила твърде много и купувачите свършват веднага след пробива.'},
+ pdh_break:{tag:'Над вчерашния връх',idea:'Вчерашната най-висока цена работи като таван. Като го пробие, пътят нагоре е по-свободен.',how:['Запомня най-високата цена от вчера.','Купува, когато днес цената мине над нея с растяща (зелена) минута.'],fail:'Таванът удържа — цената го докосва, но се обръща надолу.'},
+ hod_break:{tag:'Нов връх за деня след почивка',idea:'Купува силна акция, която вече расте днес, след като си е „поела дъх“ и тръгва пак нагоре.',how:['Акцията вече е растяла днес и е направила връх.','Чака я да поспадне с 2–5% от този връх.','Купува, когато мине над днешния връх отново.'],fail:'Новият връх се оказва последният и акцията започва да пада.'},
+ bull_flag:{tag:'Скок, почивка, скок',idea:'След силен скок и кратка спокойна почивка движението нагоре често продължава. На графиката прилича на знаме на пръчка.',how:['Акцията скача с 4–10%.','После постоява на едно място или леко пада, без много продажби.','Купува, когато пак тръгне нагоре.'],fail:'„Почивката“ се оказва начало на спад.'},
+ fib_bounce:{tag:'Покупка на отстъпка',idea:'Купува акция, която днес е поскъпнала, когато тя временно поевтинее и започне да се качва отново.',how:['Акцията е скочила днес.','Чака я да върне половината или около 60% от ръста.','Купува, когато оттам започне да се качва.'],fail:'Спадът не е почивка, а продължава надолу.'},
+ red_to_green:{tag:'От минус в плюс',idea:'Когато акция излезе от минус в плюс за деня, много хора го забелязват и купуват наведнъж.',how:['Акцията е под вчерашната си цена (на червено).','Купува, когато мине над вчерашната цена (на зелено) и се търгува повече от обикновено.'],fail:'Акцията само докосва плюса и пак пада на минус.'},
+ gap_go:{tag:'Сутрешен скок',idea:'Акция, която започва деня с голям скок (обикновено заради новини), често продължава нагоре в първите минути.',how:['Акцията започва деня с 8–25% по-високо от вчера.','Гледа първите 5 минути след отварянето.','Купува, ако цената мине над върха на тези 5 минути.'],fail:'Новината е „изпушила“ и всички продават, за да вземат печалбата.'},
+ vwap_bounce:{tag:'Отскок от средната цена',idea:'Средната цена, на която всички са търгували днес, работи като под. Купува, когато цената се оттласне от него.',how:['Смята средната цена за деня (VWAP) — на колко средно са купували всички днес.','Акцията е над нея, после слиза до нея.','Купува, когато отскочи нагоре.'],fail:'Цената пробива пода и продължава надолу.'},
+ stoch_cross:{tag:'Продавачите се изморяват',idea:'Когато една акция е продавана дълго и силно, продавачите в един момент свършват и цената тръгва обратно.',how:['Мери колко близо е цената до най-ниското за последните минути (индикатор „Стохастик“).','Когато е много ниско (под 20–25) и започне да се обръща нагоре, купува.'],fail:'Продажбите продължават — евтиното става още по-евтино.'},
+ ema_cross:{tag:'Ускорение нагоре',idea:'Когато цената от последните няколко минути стане по-висока от средната за по-дълго, значи акцията се ускорява нагоре.',how:['Смята две средни цени: от последните 5–9 минути и от последните 20–34 минути.','Когато бързата средна мине над бавната, купува.'],fail:'Цената мърда настрани и дава фалшиви сигнали.'},
+ rsi_bounce:{tag:'Отскок след голям спад',idea:'Когато акция падне прекалено много и прекалено бързо, често следва отскок нагоре.',how:['Мери колко силно и бързо е паднала цената (индикатор RSI, от 0 до 100).','Под 25–30 значи „прекалено продадена“.','Купува, когато RSI излезе обратно нагоре.'],fail:'Спадът е заради лоша новина и продължава.'},
+ macd_cross:{tag:'Спадът губи сила',idea:'Хваща момента, в който падането спира и цената започва да се обръща.',how:['Сравнява бързото и бавното движение на цената (индикатор MACD).','Когато спадът започне да отслабва и линията се обърне нагоре, купува.'],fail:'Обръщането е кратко и спадът продължава.'},
+ bb_bounce:{tag:'Твърде ниско — връща се',idea:'Цената обикновено се движи в „нормален коридор“. Когато падне под него, често се връща обратно.',how:['Смята нормалния коридор на цената за последните 20 минути (ленти на Болинджър).','Когато цената падне под долния край и отскочи обратно вътре, купува.'],fail:'Цената излиза от коридора, защото започва голям спад.'},
+ vol_spike:{tag:'Внезапен интерес',idea:'Когато изведнъж много хора започнат да купуват една акция, тя често скача бързо.',how:['Следи колко акции се търгуват всяка минута.','Когато се търгуват 3–5 пъти повече от обикновено и цената расте, купува.'],fail:'Интересът изчезва толкова бързо, колкото е дошъл.'}
+};
+let stratK=null,zTop=30;const pages=[];
+function pushPage(id){const pg=$(id);pg.style.zIndex=++zTop;pg.hidden=false;pg.scrollTop=0;document.body.style.overflow='hidden';pages.push(id);history.pushState({p:id},'')}
+function popPage(){const id=pages.pop();if(!id)return;$(id).hidden=true;if(id==='#pTrader')traderId=null;if(id==='#pTrade')tradeSel=null;if(id==='#pStrat')stratK=null;if(!pages.length)document.body.style.overflow=''}
+function openStrat(k){stratK=k;pushPage('#pStrat');stratPage()}
+function stratPage(){
+  const d=D,k=stratK,pg=$('#pStrat');if(!d||!k)return;const I=SI[k]||{};const S=(d.stats||[]).find(x=>x.k===k)||{};const name=S.style||k;
+  const users=d.bots.filter(b=>b.strat===k),gone=d.fired.filter(f=>f.style===name);
+  const t=(kk,v,c)=>`<div class="tile"><span class="k">${kk}</span><span class="v ${c||''}" style="font-size:15px">${v}</span></div>`;
+  pg.innerHTML=`<div class="wrap">
+    <div class="ph"><button class="back" type="button" data-close="s" aria-label="Назад">${BACK}</button><span class="pt"><b>${esc(name)}</b><span style="color:var(--muted)">${esc(I.tag||'Стратегия')}</span></span></div>
+    <div class="hero2"><small>ИДЕЯТА</small><p>${esc(I.idea||'')}</p></div>
+    <div class="h"><b>Как купува</b></div>
+    <ol class="howl">${(I.how||[]).map(x=>`<li><span>${esc(x)}</span></li>`).join('')}</ol>
+    <div class="h"><b>Как продава</b></div>
+    <div class="card" style="font-size:14px;line-height:1.5">Всеки трейдър с тази стратегия има своя цел за печалба, стоп за загуба и време, след което продава. Например: продава с печалба при +8%, със загуба при −3% или след 60 минути — каквото дойде първо. Точните числа са в профила на всеки трейдър.</div>
+    <div class="warn" style="margin-top:12px"><b>КОГА НЕ РАБОТИ</b>${esc(I.fail||'')}</div>
+    <div class="h"><b>Как се справя досега</b></div>
+    <div class="tiles" style="margin-top:0">${t('УСПЕХ',S.trades?`${S.winRate}% <small class="mut">${S.wins} от ${S.trades}</small>`:'—')}${t('РЕЗУЛТАТ',money0(S.pnl||0,true),cls(S.pnl||0))}${t('СРЕДНО НА СДЕЛКА',pct(S.avgPct),cls(S.avgPct||0))}${t('ДЪРЖИ СРЕДНО',S.avgMin==null?'—':S.avgMin+' мин')}${t('НАЙ-ДОБРА',S.trades?pct(S.best):'—','up')}${t('НАЙ-ЛОША',S.trades?pct(S.worst):'—','down')}${t('НАЕТИ',S.hired||0)}${t('УВОЛНЕНИ',S.fired||0,S.fired?'down':'')}</div>
+    <div class="h"><b>Кой я ползва сега</b></div>
+    <div class="list">${users.map(b=>`<button class="tr" type="button" data-open="${b.id}"><span class="av" style="--c:${b.color}">${esc(initials(b.name))}</span><span class="m"><b>${esc(b.name)}</b><span>${b.winRate==null?'още без сделки':`${b.won} от ${b.closed} на печалба`}</span></span><span class="r"><b class="${cls(b.today)}">${pct(b.todayPct)}</b><span class="mut">днес</span></span></button>`).join('')||'<div class="empty">В момента никой в отбора не я ползва.</div>'}</div>
+    ${gone.length?`<div class="h"><b>Уволнени с нея</b><span>${gone.length}</span></div><div class="list">${gone.slice(0,6).map(f=>`<div class="card" style="display:flex;justify-content:space-between;gap:10px;font-size:13.5px"><span><b style="text-decoration:line-through;text-decoration-color:var(--down)">${esc(f.name)}</b><div class="mut" style="font-size:12px">${f.why?'уволнен '+esc(f.why):''}</div></span><b class="d ${cls(f.pnl)}">${money0(f.pnl,true)}</b></div>`).join('')}</div>`:''}
+  </div>`;
+}
+
 /* ——— известия ——— */
 function notifItems(d){return d.feed.filter(e=>e.k==='fired'||e.k==='hired'||(e.b&&favs.has(e.b)&&e.k!=='info')||((e.k==='win'||e.k==='loss')&&/\(([+−-]?\d+[,.]?\d*)%/.test(e.x)&&Math.abs(parseFloat((e.x.match(/\(([+−-]?[\d,]+)%/)||[0,'0'])[1].replace('−','-').replace(',','.')))>=5))}
 function bell(d){const n=notifItems(d).filter(e=>e.t>notifSeen).length;$('#bellN').hidden=!n;$('#bellN').textContent=n>9?'9+':n}
@@ -582,7 +637,8 @@ $('#notif').onclick=e=>{if(e.target.id==='notif'||e.target.classList.contains('g
 
 /* ——— страница на трейдъра ——— */
 function botMarks(b,sel){const o=[];(b.trades||[]).forEach((t,k)=>{const big=sel&&sel.kind==='trade'&&sel.i===k;o.push({t:t.in,k:'B',p:t.entry,sym:t.sym,big},{t:t.out,k:'S',p:t.exit,sym:t.sym,big})});(b.positions||[]).forEach(p=>o.push({t:p.t,k:'B',p:p.entry,sym:p.sym,big:sel&&sel.kind==='pos'&&sel.sym===p.sym}));return o}
-function openTrader(id){traderId=id;tTab='trades';const pg=$('#pTrader');pg.hidden=false;pg.scrollTop=0;document.body.style.overflow='hidden';history.pushState({p:'t'},'');traderPage(false)}
+function openTrader(id){if(traderId&&pages.includes('#pTrader')){traderId=id;tTab='trades';const pg=$('#pTrader');pg.style.zIndex=++zTop;pages.splice(pages.indexOf('#pTrader'),1);pages.push('#pTrader');pg.scrollTop=0;history.pushState({p:'#pTrader'},'');traderPage(false);return}
+  traderId=id;tTab='trades';pushPage('#pTrader');traderPage(false)}
 function closeTrader(){traderId=null;$('#pTrader').hidden=true;if(!tradeSel)document.body.style.overflow=''}
 function traderPage(refresh){
   const b=D&&D.bots.find(x=>x.id===traderId);const pg=$('#pTrader');if(!b){if(refresh){pg.querySelector('.ph b')&&0}return}
@@ -609,7 +665,7 @@ function traderPage(refresh){
         <span class="bs"><i style="background:#D4FF3A">B</i><em></em><i style="background:#FF3D8B">S</i></span>
         <span class="m"><b>${esc(t.sym)} <small>· ${WHYT[t.why]||''}</small></b><span>${t.out<ss?nyDate(t.out)+' ':''}${nyTime(t.in)}→${nyTime(t.out)} · ${t.qty.toLocaleString('bg-BG')} бр. · ${px(t.entry)} → ${px(t.exit)}</span></span>
         <span class="r"><b class="${cls(t.pnl)}">${pct(t.pct)}</b><span class="${cls(t.pnl)}">${money(t.pnl,true)}</span></span></button>`).join(''):'<div class="empty">Още няма сделки.</div>')
-      :tTab==='strat'?`<div class="card" style="display:flex;flex-direction:column;gap:12px">${b.desc.idea?`<span class="rule"><b style="color:#FFD23F">ИДЕЯТА</b><span>${esc(b.desc.idea)}</span></span>`:''}<span class="rule"><b class="up">КУПУВА</b><span>${esc(b.desc.buy.replace(/^Купува, когато /,'Когато '))}</span></span><span class="rule"><b class="down">ПРОДАВА</b><span>${esc(b.desc.sell)}</span></span><span class="rule"><b style="color:#3DD9FF">ПАРИ</b><span>${esc(b.desc.size)}</span></span>
+      :tTab==='strat'?`<div class="card" style="display:flex;flex-direction:column;gap:12px"><button type="button" class="lnk" data-strat="${esc(b.strat)}" style="background:none;border:0;padding:0;text-align:left;color:#3DD9FF;font-weight:800;font-size:13px">Как работи „${esc(b.style)}“ с прости думи ›</button>${b.desc.idea?`<span class="rule"><b style="color:#FFD23F">ИДЕЯТА</b><span>${esc(b.desc.idea)}</span></span>`:''}<span class="rule"><b class="up">КУПУВА</b><span>${esc(b.desc.buy.replace(/^Купува, когато /,'Когато '))}</span></span><span class="rule"><b class="down">ПРОДАВА</b><span>${esc(b.desc.sell)}</span></span><span class="rule"><b style="color:#3DD9FF">ПАРИ</b><span>${esc(b.desc.size)}</span></span>
         <span class="chips"><span>Успех ${b.winRate==null?'—':`${b.winRate}% (${b.won} от ${b.closed})`}</span><span>Средно ${pct(b.avgPct)}</span><span>Държи ${b.avgHold==null?'—':b.avgHold+' мин'}</span><span>Такси ${money(b.fees||0)}</span><span>Днес ${today.length} сделки</span></span></div>`
       :`<div class="card rk2" style="gap:14px">${[['Поредни загуби',`${b.strikes} от ${D.strikesToFire}`,r1],['Спад от върха',`${b.dd.toFixed(1).replace('.',',')}% от ${D.ddFire}%`,r2],['На минус след сделки',b.total<0?`${b.wins+b.losses} от ${D.loserTrades}`:'на плюс е',r3]].map(([l,v,f])=>`<span class="rk2"><span class="a"><span>${l}</span><b>${v}</b></span><span class="b"><i style="width:${Math.round(f*100)}%;background:${rc(f)}"></i></span></span>`).join('')}<span class="mut" style="font-size:12px">Уволнява се при първото, което стигне до края.</span></div>`}</div>
   </div>`;
@@ -625,7 +681,7 @@ function traderPage(refresh){
 const chartCache={};
 async function getChart(sym,rg){const key=sym+(rg?'|'+rg.from:'');const c=chartCache[key];if(c&&(rg||Date.now()-c.at<20000))return c.d;
   try{const r=await fetch('/api/chart?s='+encodeURIComponent(sym)+(rg?`&from=${rg.from}&to=${rg.to}`:''));const d=await r.json();if(!r.ok||!d.bars)throw 0;chartCache[key]={at:Date.now(),d};return d}catch(e){return c?c.d:null}}
-function openTrade(sel){tradeSel=sel;cRange='near';const pg=$('#pTrade');pg.hidden=false;pg.scrollTop=0;document.body.style.overflow='hidden';history.pushState({p:'c'},'');tradePage(false)}
+function openTrade(sel){tradeSel=sel;cRange='near';pushPage('#pTrade');tradePage(false)}
 function closeTrade(){tradeSel=null;$('#pTrade').hidden=true;if(!traderId)document.body.style.overflow=''}
 function candles(cv,d,o,hx){
   const c=setupCv(cv);if(!c)return;const {x,w,h}=c;cv._c={d,o};
@@ -710,12 +766,13 @@ document.addEventListener('click',e=>{const t=e.target;
   const cl=t.closest('[data-close]');if(cl){history.back();return}
   const ttf=t.closest('[data-ttf]');if(ttf){tTf=ttf.dataset.ttf;traderPage(true);return}
   const ttab=t.closest('[data-ttab]');if(ttab){tTab=ttab.dataset.ttab;traderPage(true);return}
+  const sk=t.closest('[data-strat]');if(sk){openStrat(sk.dataset.strat);return}
   const tr=t.closest('[data-trade]');if(tr){const v=tr.dataset.trade;openTrade(v.startsWith('pos:')?{bot:traderId,kind:'pos',sym:v.slice(4)}:{bot:traderId,kind:'trade',i:+v.slice(2)});return}
   const cm=t.closest('[data-cmode]');if(cm){cMode=cm.dataset.cmode;LS.set('fu-cmode',cMode);tradePage(true);return}
   const cr=t.closest('[data-crange]');if(cr){cRange=cr.dataset.crange;tradePage(true);return}
 });
-addEventListener('popstate',()=>{if(tradeSel)closeTrade();else if(traderId)closeTrader()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#notif').hidden)$('#notif').hidden=true;else if(tradeSel||traderId)history.back()}});
+addEventListener('popstate',()=>popPage());
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#notif').hidden)$('#notif').hidden=true;else if(pages.length)history.back()}});
 setInterval(()=>{if(!lastFetch)return;const s=Math.round((Date.now()-lastFetch)/1000);$('#upd').textContent=`Обновено преди ${s} с`},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 addEventListener('resize',()=>{if(D){homeDrawn=true;render()}});
