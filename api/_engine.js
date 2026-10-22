@@ -9,8 +9,10 @@ const SLIP = 0.002;          // 0,2% приплъзване при покупк�
 const SLIP_PRE = 0.005;      // 0,5% в премаркета — спредовете тогава са много по-широки
 let REG_START = 0;           // кога е истинското отваряне днес (9:30 НЙ)
 const slipAt = t => (REG_START && t < REG_START ? SLIP_PRE : SLIP);
-const N_BOTS = 5;
-const STRIKES_TO_FIRE = Number(process.env.STRIKES_TO_FIRE || 2);
+const N_BOTS = Number(process.env.N_BOTS || 10);
+const STRIKES_TO_FIRE = Number(process.env.STRIKES_TO_FIRE || 3);   // правило 1: поредни загуби
+const DD_FIRE = Number(process.env.DD_FIRE || 5);                   // правило 2: % просадка от най-високия капитал
+const LOSER_TRADES = Number(process.env.LOSER_TRADES || 15);        // правило 3: на минус след толкова сделки
 const PRICE_MIN = 0.5, PRICE_MAX = 5;
 const UNIVERSE_N = 16;
 const FALLBACK = ['SNDL','PLUG','BBAI','SOUN','GSAT','TELL','OPEN','SENS','CLOV','NIO','RIG','ACHR','TLRY','HIVE','BITF','CIFR','QS','LAZR','DNA','NKLA','FCEL','IQ','GRAB','SIRI'];
@@ -281,6 +283,9 @@ function hire(st, t) {
     dayStart: START_CASH, hist: [[t, START_CASH]], gen: st.nameSeq,
   };
   st.bots.push(bot);
+  st.stats = st.stats || {}; const k = g.trigger.t;
+  (st.stats[k] = st.stats[k] || { style: bot.style, trades: 0, wins: 0, pnl: 0, pctSum: 0, best: 0, worst: 0, hired: 0, fired: 0, minutes: 0 }).hired++;
+  bot.peakEq = START_CASH;
   return bot;
 }
 
@@ -303,18 +308,33 @@ function closePos(st, bot, p, price, t, reason) {
   bot.realized = round2(bot.realized + pnl);
   const WHY = { tp: 'целта', sl: 'стопа', be: 'стопа на входа', trail: 'плъзгащия стоп', time: 'времето', rsi: 'RSI над 80', vwap: 'пада под VWAP', eod: 'края на деня', fired: 'уволнението' };
   feed(st, t, bot.id, pnl >= 0 ? 'win' : 'loss', `${bot.name} продаде ${qtyF(p.qty)} ${p.sym} по ${pxF(px)} (${pct >= 0 ? '+' : '−'}${fmtP(Math.abs(pct).toFixed(1))}%, ${pnl >= 0 ? '+' : ''}${money(pnl)}) заради ${WHY[reason] || reason}.`);
+  // статистика по стратегия (всички реални излизания)
+  const k = bot.genome.trigger.t; st.stats = st.stats || {};
+  const S = st.stats[k] = st.stats[k] || { style: bot.style, trades: 0, wins: 0, pnl: 0, pctSum: 0, best: 0, worst: 0, hired: 0, fired: 0, minutes: 0 };
+  S.trades++; if (pnl >= 0) S.wins++; S.pnl = round2(S.pnl + pnl); S.pctSum = round2(S.pctSum + pct); S.best = Math.max(S.best, round2(pct)); S.worst = Math.min(S.worst, round2(pct)); S.minutes += Math.round((t - p.t) / 60000);
   if (reason === 'fired' || reason === 'eod') return;
   if (pnl < 0) { bot.losses++; bot.strikes++; } else { bot.wins++; bot.strikes = 0; }
 }
-function fire(st, bot, t, prices) {
+// дали трябва да бъде уволнен; връща причината или null
+function fireReason(bot, prices) {
+  if (bot.strikes >= STRIKES_TO_FIRE) return 'streak';
+  const eq = equity(bot, prices);
+  bot.peakEq = Math.max(bot.peakEq || START_CASH, eq);
+  if ((bot.peakEq - eq) / bot.peakEq * 100 >= DD_FIRE) return 'dd';
+  if (bot.wins + bot.losses >= LOSER_TRADES && eq < START_CASH) return 'loser';
+  return null;
+}
+const FIRE_TXT = { streak: () => `след ${STRIKES_TO_FIRE} поредни загуби`, dd: () => `след спад ${DD_FIRE}% от най-високия му капитал`, loser: () => `защото е на минус след ${LOSER_TRADES} сделки` };
+function fire(st, bot, t, prices, why = 'streak') {
   for (const p of [...bot.positions]) closePos(st, bot, p, prices[p.sym] ?? p.entry, t, 'fired');
   const eq = equity(bot, prices);
-  st.fired.unshift({ name: bot.name, color: bot.color, style: bot.style, desc: bot.desc, hiredAt: bot.hiredAt, firedAt: t, trades: bot.wins + bot.losses, wins: bot.wins, losses: bot.losses, pnl: round2(eq - START_CASH), gen: bot.gen });
+  const k = bot.genome.trigger.t; if (st.stats && st.stats[k]) st.stats[k].fired++;
+  st.fired.unshift({ id: bot.id, name: bot.name, color: bot.color, style: bot.style, desc: bot.desc, hiredAt: bot.hiredAt, firedAt: t, trades: bot.wins + bot.losses, wins: bot.wins, losses: bot.losses, pnl: round2(eq - START_CASH), gen: bot.gen, why: FIRE_TXT[why]() });
   st.fired = st.fired.slice(0, 60);
   st.firedToday = (st.firedToday || 0) + 1;
   st.bots = st.bots.filter(b => b !== bot);
   const nb = hire(st, t);
-  feed(st, t, bot.id, 'fired', `${bot.name} е УВОЛНЕН след ${STRIKES_TO_FIRE} поредни загуби (${eq - START_CASH >= 0 ? '+' : ''}${money(eq - START_CASH)} общо).`);
+  feed(st, t, bot.id, 'fired', `${bot.name} е УВОЛНЕН ${FIRE_TXT[why]()} (${eq - START_CASH >= 0 ? '+' : ''}${money(eq - START_CASH)} общо).`);
   feed(st, t, nb.id, 'hired', `Нов трейдър: ${nb.name} (${nb.style}). ${nb.desc.buy}`);
 }
 
@@ -336,8 +356,9 @@ async function loadMarket(st) {
 /* ---------------- една стъпка ---------------- */
 async function tick(nowMs = Date.now()) {
   let st = await loadState();
-  if (!st) { st = { bots: [], fired: [], feed: [], day: null, universe: [], prices: {}, lastBar: 0, created: nowMs, daily: {} }; for (let i = 0; i < N_BOTS; i++) hire(st, nowMs); feed(st, nowMs, null, 'info', 'Състезанието започва! 5 трейдъра, по $10 000 фалшиви пари, истински цени.'); }
+  if (!st) { st = { bots: [], fired: [], feed: [], day: null, universe: [], prices: {}, lastBar: 0, created: nowMs, daily: {} }; for (let i = 0; i < N_BOTS; i++) hire(st, nowMs); feed(st, nowMs, null, 'info', `Състезанието започва! ${N_BOTS} трейдъри, по $10 000 фалшиви пари, истински цени.`); }
   st.lastTick = nowMs; st.simMs = nowMs;
+  if (st.bots.length < N_BOTS) { const add = N_BOTS - st.bots.length; const names = []; for (let i = 0; i < add; i++) names.push(hire(st, nowMs).name); feed(st, nowMs, null, 'hired', `Отборът расте! Назначени са ${add} нови трейдъри: ${names.join(', ')}.`); }
   const et = etParts(nowMs);
 
   // сесията за деня (и почивните дни) от Yahoo — по водещата акция SPY
@@ -414,8 +435,9 @@ async function tick(nowMs = Date.now()) {
         else if ((t - p.t) / 60000 >= g.hold) closePos(st, bot, p, c, t, 'time');
         else if (g.rsiExit && I.rsi(14)[i] > 80) closePos(st, bot, p, c, t, 'rsi');
         else if (g.vwapExit && c < I.vwap[i] && t - p.t > 3 * 60000) closePos(st, bot, p, c, t, 'vwap');
-        if (bot.strikes >= STRIKES_TO_FIRE) { fire(st, bot, t, st.prices); bot = null; break; }
+        if (bot.strikes >= STRIKES_TO_FIRE) { fire(st, bot, t, st.prices, 'streak'); bot = null; break; }
       }
+      if (bot) { const why = fireReason(bot, st.prices); if (why) { fire(st, bot, t, st.prices, why); bot = null; } }
       if (!bot) { bi--; continue; } // уволненият е махнат; следващият бот се измества на същото място
       if (t < entryFrom || t > entryTo || bot.positions.length >= g.maxPos) continue;
       let best = null;
@@ -442,6 +464,7 @@ async function tick(nowMs = Date.now()) {
     }
     st.lastBar = t;
   }
+  st.ticker = st.universe.map(s => { const px = st.prices[s]; const pc = st.daily?.[s]?.pdc || IND[s]?.ctx?.pdc; return px ? { s, px, chg: pc ? round2((px / pc - 1) * 100) : null } : null; }).filter(Boolean);
   for (const b of st.bots) { b.hist.push([nowMs, round2(equity(b, st.prices))]); if (b.hist.length > 420) b.hist = b.hist.filter((_, i) => i % 2 === 0); }
   if (nowMs >= end) {
     for (const b of st.bots) for (const p of [...b.positions]) closePos(st, b, p, st.prices[p.sym] ?? p.entry, end, 'eod');
@@ -466,12 +489,15 @@ function view(st, nowMs = Date.now()) {
       id: b.id, name: b.name, color: b.color, style: b.style, desc: b.desc, gen: b.gen, hiredAt: b.hiredAt,
       equity: round2(eq), today: round2(eq - b.dayStart), todayPct: round2((eq / b.dayStart - 1) * 100), total: round2(eq - START_CASH),
       strikes: b.strikes, wins: b.wins, losses: b.losses, cash: round2(b.cash), hist: b.hist,
+      dd: round2(Math.max(0, ((Math.max(b.peakEq || START_CASH, eq) - eq) / Math.max(b.peakEq || START_CASH, eq)) * 100)),
+      risk: Math.min(1, Math.max(b.strikes / STRIKES_TO_FIRE, ((Math.max(b.peakEq || START_CASH, eq) - eq) / Math.max(b.peakEq || START_CASH, eq)) * 100 / DD_FIRE, eq < START_CASH ? (b.wins + b.losses) / LOSER_TRADES : 0)),
       positions: b.positions.map(p => ({ sym: p.sym, qty: p.qty, entry: p.entry, now: prices[p.sym] ?? p.entry, pnl: round2((prices[p.sym] ?? p.entry) * p.qty - p.entry * p.qty), t: p.t })),
       trades: b.trades.slice(0, 25),
     };
   }).sort((a, b) => b.today - a.today || b.total - a.total);
-  return { status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, startCash: START_CASH,
-    session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 30), firedToday: st.firedToday || 0, dayTrades: st.dayTrades || 0, serverNow: nowMs };
+  return { status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, ddFire: DD_FIRE, loserTrades: LOSER_TRADES, startCash: START_CASH, ticker: st.ticker || [],
+    stats: Object.entries(st.stats || {}).map(([k, x]) => ({ k, ...x, winRate: x.trades ? Math.round(x.wins / x.trades * 100) : null, avgPct: x.trades ? round2(x.pctSum / x.trades) : null, avgMin: x.trades ? Math.round(x.minutes / x.trades) : null })).sort((a, b) => b.pnl - a.pnl),
+    session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40), firedToday: st.firedToday || 0, dayTrades: st.dayTrades || 0, serverNow: nowMs };
 }
 
 async function tickWithLock(nowMs = Date.now(), minGapMs = 50000) {
