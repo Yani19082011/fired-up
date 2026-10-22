@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up</title>
-<meta name="fu-ver" content="24">
+<meta name="fu-ver" content="25">
 <meta name="theme-color" content="#0D0B1A">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -776,7 +776,9 @@ document.addEventListener('click',e=>{const t=e.target;
 });
 addEventListener('popstate',()=>popPage());
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#notif').hidden)$('#notif').hidden=true;else if(pages.length)history.back()}});
-setInterval(()=>{if(!lastFetch)return;const s=Math.round((Date.now()-lastFetch)/1000);$('#upd').textContent=`Обновено преди ${s} с`},1000);
+setInterval(()=>{if(!lastFetch)return;const s=Math.round((Date.now()-lastFetch)/1000);let t=`Обновено преди ${s} с`;
+  if(D&&D.dataT&&(D.status==='open'||D.status==='premarket')){const a=Math.max(0,Math.round((Date.now()-D.dataT)/1000));t+=` · цените са отпреди ${a<120?a+' с':Math.round(a/60)+' мин'} · ${D.srcLive==='yahoo+finnhub'?'Yahoo + Finnhub':'Yahoo'}`}
+  $('#upd').textContent=t},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 addEventListener('resize',()=>{if(D){homeDrawn=true;render()}});
 load();setInterval(()=>{if(!document.hidden)load()},10000);
