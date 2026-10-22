@@ -132,6 +132,11 @@ main .wrap{display:flex;flex-direction:column;padding-block:14px calc(112px + en
 .grave .stamp{position:absolute;right:12px;top:10px;font-family:var(--display);font-weight:900;font-size:10px;letter-spacing:.1em;color:var(--down);border:2px solid var(--down);border-radius:6px;padding:2px 7px;transform:rotate(7deg)}
 .grave .av{background:#3A3360;color:var(--muted)}
 .grave .nm{font-size:14.5px;font-weight:800;text-decoration:line-through;text-decoration-color:var(--down)}
+details.grave summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:6px}
+details.grave summary::-webkit-details-marker{display:none}
+details.grave .more{font-size:11.5px;color:var(--cyan);font-weight:700}
+details.grave[open] .more{display:none}
+details.grave .desc{display:flex;flex-direction:column;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line2)}
 .recs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .recs .card{min-height:104px;display:flex;flex-direction:column;gap:4px}
 .recs .v{font-family:var(--display);font-weight:800;font-size:19px}
@@ -194,7 +199,7 @@ nav.tabs .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;b
 .tr .r b{font-family:var(--display);font-weight:800;font-size:12.5px}
 .tr .r span{font-size:12px;font-weight:700}
 .rule{display:flex;gap:10px;font-size:14px;line-height:1.45}
-.rule b{flex:none;width:70px;font-size:11px;letter-spacing:.08em;padding-top:2px}
+.rule b{flex:none;width:86px;font-size:11px;letter-spacing:.08em;padding-top:2px}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
 .chips span{font-size:12px;font-weight:700;background:var(--line2);border-radius:8px;padding:4px 9px}
 .rk2{display:flex;flex-direction:column;gap:6px}
@@ -316,8 +321,14 @@ nav.tabs .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;b
   </section>
   <section id="v-stats" hidden>
     <div class="h" style="margin-top:4px"><b style="font-size:20px">Статистика</b></div>
-    <div class="seg big" id="stab"><button type="button" data-s="strat">Стратегии</button><button type="button" data-s="fired">Уволнени</button><button type="button" data-s="rec">Рекорди</button></div>
+    <div class="seg big" id="stab"><button type="button" data-s="strat">Стратегии</button><button type="button" data-s="rec">Рекорди</button></div>
     <div id="statsBody" style="margin-top:10px"></div>
+  </section>
+  <section id="v-fired" hidden>
+    <div class="h" style="margin-top:4px"><b style="font-size:20px">Уволнени</b><span>гробището на трейдърите</span></div>
+    <div class="tiles" id="fSum" style="margin-top:0"></div>
+    <div class="filt" id="fSort" style="margin-top:14px"><button type="button" data-fs="new">Последни</button><button type="button" data-fs="today">Днес</button><button type="button" data-fs="worst">Най-голяма загуба</button></div>
+    <div class="list" id="firedList"></div>
   </section>
   <div class="upd" id="upd"></div>
 </div></main>
@@ -342,7 +353,7 @@ let D=null,tab=LS.get('fu-tab','home'),hTf=LS.get('fu-htf','1d'),basis=LS.get('f
 let favs=new Set(JSON.parse(LS.get('fu-favs','[]')||'[]')),notifSeen=+LS.get('fu-notif',0)||0,seenFired=+LS.get('fu-seen-fired',0)||0,animFired=+LS.get('fu-anim-fired',0)||0;
 let traderId=null,tTf='1d',tTab='trades',tradeSel=null,cMode=LS.get('fu-cmode','candle'),cRange='near';
 let lastFetch=0,firstLoad=true,introDone=false,prevToday={},seenFeed=new Set(),boomQ=[],homeDrawn=false;
-if(!['home','feed','stats'].includes(tab))tab='home';
+if(!['home','feed','stats','fired'].includes(tab))tab='home';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=(n,sign)=>{const a=Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});return (n<0?'−$':(sign&&n>0?'+$':'$'))+a};
@@ -391,14 +402,14 @@ function render(){
   $('#pillTxt').textContent=st[0];$('#clockp').classList.toggle('live',!!st[1]);$('#clock').textContent=d.simMs?'NY '+nyTime(d.simMs):'';
   const ss=d.session;const prog=ss?Math.max(0,Math.min(1,(now()-ss.start)/(ss.end-ss.start))):0;$('#clockRing').setAttribute('stroke-dasharray',`${(62.83*prog).toFixed(1)} 63`);
   tape(d);
-  for(const v of ['home','feed','stats'])$('#v-'+v).hidden=v!==tab;
-  const fv=tab==='stats'&&statsTab==='fired';document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(fv?b.dataset.v==='fired':b.dataset.v===tab)));
+  for(const v of ['home','feed','stats','fired'])$('#v-'+v).hidden=v!==tab;
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.v===tab)));
   const nf=d.fired.length?d.fired[0].firedAt:0;const unseen=d.fired.filter(f=>f.firedAt>seenFired).length;
   $('#firedBadge').hidden=!unseen;$('#firedBadge').textContent=unseen;
-  if(tab==='stats'&&statsTab==='fired'&&nf){seenFired=nf;LS.set('fu-seen-fired',nf);$('#firedBadge').hidden=true}
+  if(tab==='fired'&&nf){seenFired=nf;LS.set('fu-seen-fired',nf);$('#firedBadge').hidden=true}
   bell(d);
   if(introDone)home(d);
-  feedAll(d);stats(d);
+  feedAll(d);stats(d);firedV(d);
   if(traderId)traderPage(true);
   if(tradeSel)tradePage(true);
   if(firstLoad){if(!animFired&&nf){animFired=nf;LS.set('fu-anim-fired',nf)}firstLoad=false}
@@ -444,7 +455,7 @@ function scrub(cv,draw){const at=e=>{const r=cv.getBoundingClientRect();return e
 function tfFilter(pts,tf){if(!pts||!pts.length)return [];const last=pts[pts.length-1][0];
   const from=tf==='1h'?last-3600e3:tf==='1d'?((D.session&&D.session.start)||last-86400e3):tf==='1w'?last-7*86400e3:tf==='1m'?last-30*86400e3:0;
   const f=pts.filter(p=>p[0]>=from);return f.length>=2?f:pts.slice(-2)}
-function mini(cv,b){const c=setupCv(cv);if(!c)return;const {x,w,h}=c;const pts=tfFilter(b.hist||[],'1d');if(pts.length<2){x.strokeStyle='#4B4570';x.beginPath();x.moveTo(0,h/2);x.lineTo(w,h/2);x.stroke();return}
+function mini(cv,b,from){const c=setupCv(cv);if(!c)return;const {x,w,h}=c;let pts=tfFilter(b.hist||[],'1d');if(from){const f=pts.filter(q=>q[0]>=from-60000);if(f.length>=2)pts=f}if(pts.length<2){x.strokeStyle='#4B4570';x.beginPath();x.moveTo(0,h/2);x.lineTo(w,h/2);x.stroke();return}
   const vals=pts.map(p=>p[1]),base=vals[0];let mn=Math.min(base,...vals),mx=Math.max(base,...vals);if(mx-mn<1){mx+=.5;mn-=.5}
   x.beginPath();vals.forEach((v,i)=>{const X=1+i/(vals.length-1)*(w-2),Y=h-2-(v-mn)/(mx-mn)*(h-4);i?x.lineTo(X,Y):x.moveTo(X,Y)});x.strokeStyle=col(vals[vals.length-1]-base)||'#A39DC2';x.lineWidth=1.6;x.lineJoin='round';x.stroke()}
 
@@ -457,7 +468,7 @@ function home(d){
   const cv=$('#homeChart');if(!cv._on)setPort(null);
   homeChart(d);
   const closed=d.dayClosed||0,wr=closed?Math.round((d.dayWins||0)/closed*100):null;
-  $('#tTrades').innerHTML=`${d.dayTrades} <small class="up">${wr==null?'':wr+'% печ.'}</small>`;
+  $('#tTrades').innerHTML=`${d.dayTrades} <small class="${wr==null?'mut':wr>=50?'up':'down'}">${wr==null?'':`${d.dayWins||0}/${closed} печ. · ${wr}%`}</small>`;
   $('#tIn').innerHTML=`${d.bots.filter(b=>b.positions.length).length}<small class="mut"> от ${d.bots.length}</small>`;
   $('#tFired').innerHTML=`${d.firedToday} <small>${d.firedDayPnl?money0(d.firedDayPnl,true):''}</small>`;
   $('#tFees').innerHTML=`${money0(d.feesDay||0)} <small class="mut">общо ${money0(d.feesAll||0)}</small>`;
@@ -465,8 +476,8 @@ function home(d){
   $('#miniFeed').innerHTML=d.feed.slice(0,3).map(e=>evRow(e,false)).join('')||'<div class="empty">Тук ще се появяват сделките.</div>';
   // MVP
   const top=d.bots[0];const mv=$('#mvp');
-  if(top&&top.today>0){const ss=d.session?d.session.start:0;const tt=top.trades.filter(t=>t.out>=ss);const w=tt.filter(t=>t.pnl>=0).length;
-    mv.hidden=false;mv.dataset.id=top.id;mv.innerHTML=`<span><span class="av" style="--c:${top.color}">${esc(initials(top.name))}</span><span class="t"><small>MVP НА ДЕНЯ</small><b>${esc(top.name)}</b><i>${tt.length} сделки днес${tt.length?' · '+Math.round(w/tt.length*100)+'% успех':''} · ${esc(top.style)}</i></span><b class="d up" style="font-size:15px">${money0(top.today,true)}</b></span>`}
+  if(top&&top.today>0){const ss=d.session?d.session.start:0;const tt=top.trades.filter(t=>t.out>=ss);const w=tt.filter(t=>t.pnl>0).length;
+    mv.hidden=false;mv.dataset.id=top.id;mv.innerHTML=`<span><span class="av" style="--c:${top.color}">${esc(initials(top.name))}</span><span class="t"><small>MVP НА ДЕНЯ</small><b>${esc(top.name)}</b><i>${tt.length?`${w} от ${tt.length} сделки на печалба днес`:'още без сделки днес'} · ${esc(top.style)}</i></span><b class="d up" style="font-size:15px">${money0(top.today,true)}</b></span>`}
   else mv.hidden=true;
   rows(d);
 }
@@ -496,16 +507,23 @@ function status(b){
 function rows(d){
   const el=$('#rows');const before={};el.querySelectorAll('.row').forEach(c=>before[c.dataset.id]=c.getBoundingClientRect().top);
   const mxA=Math.max(50,...d.bots.map(b=>Math.abs(b.today)));const RC=['#FFD23F','#D9DDE8','#E8955A'];
-  const list=d.bots.map((b,i)=>({b,i,st:status(b)})).filter(({b,st})=>filt==='all'||(filt==='trade'&&st[2]==='trade')||(filt==='edge'&&b.risk>=.67)||(filt==='fav'&&favs.has(b.id)));
-  el.innerHTML=list.map(({b,i,st})=>{const fav=favs.has(b.id),w=Math.abs(b.today)/mxA*50;const fresh=now()-b.hiredAt<30*60000;
+  let list=d.bots.map((b,i)=>({b,i,st:status(b)})).filter(({b,st})=>filt==='all'||(filt==='trade'&&st[2]==='trade')||(filt==='edge'&&b.risk>=.67)||(filt==='fav'&&favs.has(b.id)));
+  // „В сделка“: вдясно е резултатът от текущата сделка, не от целия ден; подредени по него
+  const tm=filt==='trade';const pos=b=>b.positions[0];
+  if(tm)list.sort((a,b)=>(pos(b.b)?pos(b.b).pnl:-1e9)-(pos(a.b)?pos(a.b).pnl:-1e9));
+  const mxT=Math.max(20,...d.bots.map(b=>b.positions[0]?Math.abs(b.positions[0].pnl):0));
+  el.innerHTML=list.map(({b,i,st})=>{const fav=favs.has(b.id);const fresh=now()-b.hiredAt<30*60000;const p=tm?pos(b):null;
+    const val=p?p.pnl:b.today,w=Math.abs(val)/(p?mxT:mxA)*50;
+    if(p)st=[`${p.sym} · ${dur(now()-p.t)} в сделка`,'#3DD9FF','trade'];
     return `<div class="row${b.risk>=.67?' edge':''}" data-id="${b.id}">
       <button class="main" type="button" data-open="${b.id}"><span class="rk" style="${i<3?'color:'+RC[i]:''}">${i+1}</span><span class="av" style="--c:${b.color}">${esc(initials(b.name))}</span>
         <span class="who"><b>${esc(b.name)}${fresh?' <small style="font-size:9.5px;font-weight:900;color:#0D0B1A;background:#3DD9FF;border-radius:5px;padding:1px 5px;vertical-align:2px">НОВ</small>':''}</b><span style="color:${st[1]}">${esc(st[0])}</span></span>
-        <canvas data-sp="${b.id}" aria-hidden="true"></canvas>
-        <span class="pl"><b class="num" data-num="${b.id}">${money0(b.equity)}</b><span style="color:${col(b.today)}">${pct(b.todayPct)}</span></span></button>
+        <canvas data-sp="${b.id}" data-from="${p?p.t:''}" aria-hidden="true"></canvas>
+        ${p?`<span class="pl"><b class="num" style="color:${col(p.pnl)}">${money(p.pnl,true)}</b><span style="color:${col(p.pnl)}">${pct(p.pct)}</span></span>`
+          :`<span class="pl"><b class="num" data-num="${b.id}">${money0(b.equity)}</b><span style="color:${col(b.today)}">${pct(b.todayPct)}</span></span>`}</button>
       <button class="star" type="button" data-star="${b.id}" aria-pressed="${fav}" aria-label="Следи ${esc(b.name)}">${STAR}</button>
-      <span class="bar" style="left:${b.today>=0?50:50-w}%;width:${w}%;background:${col(b.today)}"></span></div>`}).join('')||`<div class="empty">${filt==='fav'?'Още не следиш никого — натисни ★ до трейдър.':'Няма трейдъри тук в момента.'}</div>`;
-  el.querySelectorAll('.row').forEach(c=>{const id=c.dataset.id,b=d.bots.find(x=>x.id===id);mini(c.querySelector('canvas'),b);
+      <span class="bar" style="left:${val>=0?50:50-w}%;width:${w}%;background:${col(val)}"></span></div>`}).join('')||`<div class="empty">${filt==='fav'?'Още не следиш никого — натисни ★ до трейдър.':'Няма трейдъри тук в момента.'}</div>`;
+  el.querySelectorAll('.row').forEach(c=>{const id=c.dataset.id,b=d.bots.find(x=>x.id===id);const cv=c.querySelector('canvas');mini(cv,b,+cv.dataset.from||0);
     if(!reduce&&before[id]!=null){const dy=before[id]-c.getBoundingClientRect().top;if(Math.abs(dy)>2)c.animate([{transform:`translateY(${dy}px)`},{transform:'none'}],{duration:650,easing:'cubic-bezier(.2,.8,.2,1)'})}
     const prev=prevToday[id];if(prev!=null&&Math.abs(prev-b.today)>=.5)c.classList.add(b.today>prev?'fl-up':'fl-down');prevToday[id]=b.today});
 }
@@ -520,11 +538,8 @@ function stats(d){
   if(statsTab==='strat'){const S=(d.stats||[]).filter(s=>s.trades>0||s.hired>0);
     el.innerHTML=`<p class="note" style="margin:0 4px 8px">Коя стратегия печели наистина — сбор от всички трейдъри, и от уволнените.</p><div class="list">`+(S.map(s=>{const wr=s.winRate||0;return `<div class="card strat">
       <svg width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="Успех ${wr}%"><circle cx="23" cy="23" r="18" fill="none" stroke="#2C2748" stroke-width="5"/><circle cx="23" cy="23" r="18" fill="none" stroke="${col(s.pnl)}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C*wr/100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 23 23)"/><text x="23" y="27" text-anchor="middle" font-family="Unbounded,sans-serif" font-weight="800" font-size="10" fill="#F4F2FF">${s.winRate==null?'—':wr+'%'}</text></svg>
-      <span style="min-width:0"><b>${esc(s.style)}</b><div class="s">${s.trades} сделки · държи ${s.avgMin==null?'—':s.avgMin+' мин'} · уволнени ${s.fired}</div></span>
+      <span style="min-width:0"><b>${esc(s.style)}</b><div class="s">${s.trades?`${s.wins} от ${s.trades} на печалба`:'още без сделки'} · държи ${s.avgMin==null?'—':s.avgMin+' мин'} · уволнени ${s.fired}</div></span>
       <span class="r"><b class="d ${cls(s.pnl)}" style="font-size:14px">${money0(s.pnl,true)}</b><span class="s">средно ${pct(s.avgPct)}</span></span></div>`}).join('')||'<div class="empty">Статистиката ще се появи след първите сделки.</div>')+`</div>`+realNote(d)}
-  else if(statsTab==='fired'){el.innerHTML='<div class="list">'+(d.fired.map(f=>`<div class="card grave"><span class="stamp">УВОЛНЕН</span>
-      <span style="display:flex;align-items:center;gap:10px"><span class="av">${esc(initials(f.name))}</span><span><span class="nm">${esc(f.name)}</span><div class="mut" style="font-size:12px">${esc(f.style)} · издържа ${dur(f.firedAt-f.hiredAt)} · ${f.wins}/${f.losses}</div></span></span>
-      <span style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span class="down" style="font-weight:700">${f.why?esc(f.why):''}</span><b class="d ${cls(f.pnl)}">${money0(f.pnl,true)}</b></span></div>`).join('')||'<div class="empty">Още никой не е уволнен. Засега.</div>')+'</div>'}
   else{const R=d.records||{};const card=(k,v,s,c)=>`<div class="card"><span class="mut" style="font-size:10.5px;font-weight:800;letter-spacing:.1em">${k}</span><span class="v" style="color:${c||'#F4F2FF'}">${v}</span><span class="mut" style="font-size:12px">${s}</span></div>`;
     el.innerHTML='<div class="recs">'+[
       R.best?card('НАЙ-ДОБРА СДЕЛКА',pct(R.best.pct),`${esc(R.best.name)} · ${esc(R.best.sym)} · ${money0(R.best.pnl,true)}`,'#D4FF3A'):card('НАЙ-ДОБРА СДЕЛКА','—','още няма'),
@@ -534,6 +549,23 @@ function stats(d){
       R.bestDay?card('НАЙ-ДОБЪР ДЕН',money0(R.bestDay.pnl,true),'отборът · '+esc(R.bestDay.d.slice(8,10)+'.'+R.bestDay.d.slice(5,7)),col(R.bestDay.pnl)):card('НАЙ-ДОБЪР ДЕН','—','след първия завършен ден'),
       card('ВСИЧКИ ТАКСИ',money0(d.feesAll||0),'платени на брокера от началото')
     ].join('')+'</div>'}
+}
+let fSort='new';
+function firedV(d){
+  document.querySelectorAll('#fSort button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.fs===fSort));
+  const F=d.fired||[],ss=d.session?d.session.start:0;
+  const why={};F.forEach(f=>{const k=(f.why||'').replace(/^след |^защото /,'');if(k)why[k]=(why[k]||0)+1});const top=Object.entries(why).sort((a,b)=>b[1]-a[1])[0];
+  const avg=F.length?F.reduce((a,f)=>a+(f.firedAt-f.hiredAt),0)/F.length:0;
+  $('#fSum').innerHTML=`<div class="tile"><span class="k">ОБЩО УВОЛНЕНИ</span><span class="v down">${F.length} <small class="mut">днес ${d.firedToday}</small></span></div>
+    <div class="tile"><span class="k">РЕЗУЛТАТ НА УВОЛНЕНИТЕ</span><span class="v ${cls(d.firedAllPnl||0)}">${money0(d.firedAllPnl||0,true)}</span></div>
+    <div class="tile"><span class="k">НАЙ-ЧЕСТА ПРИЧИНА</span><span class="v" style="font-size:13px;white-space:normal">${top?esc(top[0])+' <small class="mut">×'+top[1]+'</small>':'—'}</span></div>
+    <div class="tile"><span class="k">ИЗДЪРЖАТ СРЕДНО</span><span class="v">${F.length?dur(avg):'—'}</span></div>`;
+  let L=F.slice();if(fSort==='today')L=L.filter(f=>f.firedAt>=ss);if(fSort==='worst')L.sort((a,b)=>a.pnl-b.pnl);
+  $('#firedList').innerHTML=L.map(f=>`<details class="card grave"><summary><span class="stamp">УВОЛНЕН</span>
+      <span style="display:flex;align-items:center;gap:10px"><span class="av">${esc(initials(f.name))}</span><span><span class="nm">${esc(f.name)}</span><div class="mut" style="font-size:12px">${esc(f.style)} · издържа ${dur(f.firedAt-f.hiredAt)} · ${f.wins} печ. / ${f.losses} заг.</div></span></span>
+      <span style="display:flex;justify-content:space-between;gap:10px;font-size:13px"><span class="down" style="font-weight:700">${f.why?'Уволнен '+esc(f.why):''}</span><b class="d ${cls(f.pnl)}">${money0(f.pnl,true)}</b></span>
+      <span class="more">${f.firedAt<ss?nyDate(f.firedAt)+' ':''}${nyTime(f.firedAt)} · докосни за стратегията ›</span></summary>
+      <div class="desc"><span class="rule"><b class="up">КУПУВАШЕ</b><span>${esc((f.desc&&f.desc.buy||'').replace(/^Купува, когато /,'Когато '))}</span></span><span class="rule"><b class="down">ПРОДАВАШЕ</b><span>${esc(f.desc&&f.desc.sell||'')}</span></span><span class="mut" style="font-size:12px">Нает ${nyDate(f.hiredAt)} ${nyTime(f.hiredAt)} · уволнен ${nyDate(f.firedAt)} ${nyTime(f.firedAt)} · ${f.trades} сделки</span></div></details>`).join('')||`<div class="empty">${fSort==='today'?'Днес още никой не е уволнен.':'Още никой не е уволнен. Засега.'}</div>`;
 }
 function realNote(d){return `<div class="card real"><b class="d" style="font-size:12px;letter-spacing:.06em">КАТО С ИСТИНСКИ ПАРИ</b><ul>
   <li>Купува на следващата минута след сигнала с лимитна поръчка — ако цената избяга, не купува.</li>
@@ -555,7 +587,7 @@ function closeTrader(){traderId=null;$('#pTrader').hidden=true;if(!tradeSel)docu
 function traderPage(refresh){
   const b=D&&D.bots.find(x=>x.id===traderId);const pg=$('#pTrader');if(!b){if(refresh){pg.querySelector('.ph b')&&0}return}
   const i=D.bots.indexOf(b),fav=favs.has(b.id),lives=Math.max(0,D.strikesToFire-b.strikes);const keep=pg.scrollTop;const ss=D.session?D.session.start:0;
-  const tt=b.trades,today=tt.filter(t=>t.out>=ss),w=tt.filter(t=>t.pnl>=0).length;
+  const tt=b.trades,today=tt.filter(t=>t.out>=ss);
   const avgP=tt.length?tt.reduce((a,t)=>a+t.pct,0)/tt.length:null,avgH=tt.length?Math.round(tt.reduce((a,t)=>a+(t.out-t.in),0)/tt.length/60000):null;
   const r1=b.strikes/D.strikesToFire,r2=Math.min(1,b.dd/D.ddFire),r3=b.total<0?Math.min(1,(b.wins+b.losses)/D.loserTrades):0;
   const rc=v=>v>=.67?'#FF3D8B':v>=.34?'#FFD23F':'#D4FF3A';
@@ -577,8 +609,8 @@ function traderPage(refresh){
         <span class="bs"><i style="background:#D4FF3A">B</i><em></em><i style="background:#FF3D8B">S</i></span>
         <span class="m"><b>${esc(t.sym)} <small>· ${WHYT[t.why]||''}</small></b><span>${t.out<ss?nyDate(t.out)+' ':''}${nyTime(t.in)}→${nyTime(t.out)} · ${t.qty.toLocaleString('bg-BG')} бр. · ${px(t.entry)} → ${px(t.exit)}</span></span>
         <span class="r"><b class="${cls(t.pnl)}">${pct(t.pct)}</b><span class="${cls(t.pnl)}">${money(t.pnl,true)}</span></span></button>`).join(''):'<div class="empty">Още няма сделки.</div>')
-      :tTab==='strat'?`<div class="card" style="display:flex;flex-direction:column;gap:12px"><span class="rule"><b class="up">КУПУВА</b><span>${esc(b.desc.buy.replace(/^Купува, когато /,'Когато '))}</span></span><span class="rule"><b class="down">ПРОДАВА</b><span>${esc(b.desc.sell)}</span></span><span class="rule"><b style="color:#3DD9FF">ПАРИ</b><span>${esc(b.desc.size)}</span></span>
-        <span class="chips"><span>Успех ${tt.length?Math.round(w/tt.length*100)+'%':'—'}</span><span>Средно ${pct(avgP)}</span><span>Държи ${avgH==null?'—':avgH+' мин'}</span><span>Такси ${money(b.fees||0)}</span><span>Днес ${today.length} сделки</span></span></div>`
+      :tTab==='strat'?`<div class="card" style="display:flex;flex-direction:column;gap:12px">${b.desc.idea?`<span class="rule"><b style="color:#FFD23F">ИДЕЯТА</b><span>${esc(b.desc.idea)}</span></span>`:''}<span class="rule"><b class="up">КУПУВА</b><span>${esc(b.desc.buy.replace(/^Купува, когато /,'Когато '))}</span></span><span class="rule"><b class="down">ПРОДАВА</b><span>${esc(b.desc.sell)}</span></span><span class="rule"><b style="color:#3DD9FF">ПАРИ</b><span>${esc(b.desc.size)}</span></span>
+        <span class="chips"><span>Успех ${b.winRate==null?'—':`${b.winRate}% (${b.won} от ${b.closed})`}</span><span>Средно ${pct(b.avgPct)}</span><span>Държи ${b.avgHold==null?'—':b.avgHold+' мин'}</span><span>Такси ${money(b.fees||0)}</span><span>Днес ${today.length} сделки</span></span></div>`
       :`<div class="card rk2" style="gap:14px">${[['Поредни загуби',`${b.strikes} от ${D.strikesToFire}`,r1],['Спад от върха',`${b.dd.toFixed(1).replace('.',',')}% от ${D.ddFire}%`,r2],['На минус след сделки',b.total<0?`${b.wins+b.losses} от ${D.loserTrades}`:'на плюс е',r3]].map(([l,v,f])=>`<span class="rk2"><span class="a"><span>${l}</span><b>${v}</b></span><span class="b"><i style="width:${Math.round(f*100)}%;background:${rc(f)}"></i></span></span>`).join('')}<span class="mut" style="font-size:12px">Уволнява се при първото, което стигне до края.</span></div>`}</div>
   </div>`;
   if(refresh)pg.scrollTop=keep;
@@ -663,7 +695,7 @@ function nextBoom(){const f=boomQ.shift();if(!f){$('#boom').hidden=true;return}
 $('#boom').onclick=()=>{clearTimeout($('#boom')._t);nextBoom()};
 
 /* ——— събития ——— */
-function setTab(t){if(t==='fired'){tab='stats';statsTab='fired'}else{tab=t;if(t==='stats'&&statsTab==='fired')statsTab='strat'}LS.set('fu-tab',tab);homeDrawn=false;if(D)render();scrollTo({top:0,behavior:reduce?'auto':'smooth'})}
+function setTab(t){tab=t;LS.set('fu-tab',tab);homeDrawn=false;if(D)render();scrollTo({top:0,behavior:reduce?'auto':'smooth'})}
 $('#tabs').onclick=e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.v)};
 document.addEventListener('click',e=>{const t=e.target;
   const star=t.closest('[data-star]');if(star){const id=star.dataset.star;favs.has(id)?favs.delete(id):favs.add(id);LS.set('fu-favs',JSON.stringify([...favs]));star.setAttribute('aria-pressed',favs.has(id));if(filt==='fav'&&D)rows(D);if(D)bell(D);return}
@@ -673,6 +705,7 @@ document.addEventListener('click',e=>{const t=e.target;
   const bb=t.closest('#basis button');if(bb){basis=bb.dataset.b;LS.set('fu-basis',basis);if(D)home(D);return}
   const tf=t.closest('#htf button');if(tf){hTf=tf.dataset.tf;LS.set('fu-htf',hTf);homeDrawn=false;if(D)home(D);return}
   const fb=t.closest('#filt button');if(fb){filt=fb.dataset.f;LS.set('fu-filt',filt);if(D)home(D);return}
+  const fs=t.closest('#fSort button');if(fs){fSort=fs.dataset.fs;if(D)firedV(D);return}
   const sb=t.closest('#stab button');if(sb){statsTab=sb.dataset.s;if(D)render();return}
   const cl=t.closest('[data-close]');if(cl){history.back();return}
   const ttf=t.closest('[data-ttf]');if(ttf){tTf=ttf.dataset.ttf;traderPage(true);return}
