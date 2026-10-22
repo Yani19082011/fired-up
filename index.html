@@ -67,6 +67,9 @@ main .wrap{display:flex;flex-direction:column;gap:18px;padding-block:16px calc(1
 .hero::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(120deg,rgba(255,210,63,.6),rgba(255,106,26,.15) 35%,transparent 60%,rgba(255,46,99,.4));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 .hero .lbl{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .hero .big{font-family:var(--display);font-weight:900;font-size:clamp(34px,11vw,52px);line-height:1.05;letter-spacing:-.03em;margin:2px 0 8px;font-variant-numeric:tabular-nums}
+.allt{font-size:13px;font-weight:700;color:var(--muted);margin:-4px 0 10px}
+.allt b{font-family:var(--mono);font-size:15px;font-weight:800}
+.allt span{font-size:11.5px;font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
 .chip b{color:var(--ink);font-family:var(--mono)}
@@ -120,6 +123,9 @@ main .wrap{display:flex;flex-direction:column;gap:18px;padding-block:16px calc(1
 .pl span{font-family:var(--mono);font-size:11px}
 .row .pos{grid-column:3/5;display:flex;gap:6px;flex-wrap:wrap;margin-top:-2px}
 .pchip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;font-weight:800;background:rgba(255,106,26,.1);border:1px solid rgba(255,106,26,.35);border-radius:8px;padding:3px 8px}
+.lchip{display:inline-flex;gap:6px;font-family:var(--mono);font-size:11px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:8px;padding:3px 8px}
+.p{cursor:pointer}.p.sel{border-color:var(--accent);background:rgba(255,106,26,.16)}
+.p .r{text-align:right;white-space:nowrap}.p .r small{display:block;font-size:11px}
 .pchip i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:ping 1.4s infinite}
 .rbar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.04)}
 .rbar i{display:block;height:100%;background:linear-gradient(90deg,var(--hot),var(--down));transition:width .8s cubic-bezier(.2,.8,.2,1)}
@@ -212,6 +218,32 @@ nav.tabs button[aria-selected="true"] svg{transform:translateY(-1px) scale(1.12)
 .tr{display:grid;grid-template-columns:auto 1fr auto;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
 .tr:last-child{border-bottom:0}
 .tr span:nth-child(2){color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rspark{width:50px;height:28px;display:block}
+.row{grid-template-columns:18px 38px minmax(0,1fr) 50px auto;gap:8px;padding-inline:10px}
+.row .av{width:38px;height:38px;font-size:12.5px}
+.row .who b{font-size:14px}
+.row .pl b{font-size:14.5px}
+.row .pos{grid-column:3/6}
+.chartbox{background:#0C0910;border:1px solid var(--line);border-radius:16px;padding:10px 10px 8px;margin-bottom:12px}
+.cchart{width:100%;height:230px;display:block;touch-action:pan-y}
+.ctabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ctabs button{font:inherit;font-family:var(--mono);font-weight:800;font-size:12px;border:1px solid var(--line);background:var(--raise);color:var(--muted);border-radius:9px;padding:4px 10px;cursor:pointer}
+.ctabs button[aria-pressed="true"]{background:rgba(255,106,26,.15);border-color:var(--accent);color:var(--ink)}
+.ctool{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+.seg2{display:inline-flex;background:var(--raise);border-radius:10px;padding:3px;gap:2px}
+.seg2 button{font:inherit;font-size:11.5px;font-weight:800;border:0;background:none;color:var(--muted);border-radius:8px;padding:5px 10px;cursor:pointer}
+.seg2 button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.bigspark{touch-action:pan-y}
+.clegend{display:flex;flex-wrap:wrap;gap:4px 12px;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px}
+.clegend b{color:var(--ink)}
+.clegend i{display:inline-block;width:10px;height:2px;vertical-align:middle;margin-right:4px}
+.pend{background:rgba(76,201,240,.08);border:1px dashed rgba(76,201,240,.5);border-radius:12px;padding:8px 12px;font-size:13px;margin-bottom:12px}
+.tr{cursor:pointer;border-radius:8px}
+.tr.sel{background:rgba(255,106,26,.1)}
+.tr .f{display:block;font-size:10px;color:var(--muted)}
+.real{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.real b{color:var(--ink);font-family:var(--display);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.real ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 .sh-h{font-family:var(--display);font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
 /* УВОЛНЕН */
 .boom{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;cursor:pointer;background:radial-gradient(circle at 50% 40%,rgba(255,46,99,.45),rgba(9,7,13,.96) 62%);animation:redflash .5s steps(2) 2}
@@ -282,7 +314,8 @@ nav.tabs button[aria-selected="true"] svg{transform:translateY(-1px) scale(1.12)
     <div class="hero" id="hero">
       <div class="lbl">Отборът днес</div>
       <div class="big" id="sTotal">—</div>
-      <div class="chips"><span class="chip">Сделки <b id="sTrades">—</b></span><span class="chip">В позиция <b id="sIn">—</b></span><span class="chip red">Уволнени днес <b id="sFired">—</b></span></div>
+      <div class="allt">Общо от началото <b id="sAll">—</b> <span id="sAllNote"></span></div>
+      <div class="chips"><span class="chip">Сделки <b id="sTrades">—</b></span><span class="chip">В позиция <b id="sIn">—</b></span><span class="chip red">Уволнени днес <b id="sFired">—</b></span><span class="chip" id="sFiredPnl" hidden>От уволнените <b></b></span></div>
       <canvas class="race" id="race" aria-label="Надбягването: печалбата на всеки трейдър през деня"></canvas>
       <div class="raceKey"><span id="raceFrom"></span><span>Надбягването днес</span><span id="raceTo"></span></div>
     </div>
@@ -294,6 +327,13 @@ nav.tabs button[aria-selected="true"] svg{transform:translateY(-1px) scale(1.12)
   <section id="v-feed" class="feed" hidden></section>
   <section id="v-stats" class="rows" hidden></section>
   <section id="v-fired" class="rows" hidden></section>
+  <div class="real" id="real"><b>Като с истински пари</b><ul>
+    <li>Купува и продава на <b style="font-family:var(--mono);font-size:inherit;text-transform:none;letter-spacing:0">следващата</b> минута след сигнала, с лимитна поръчка — ако цената избяга, не купува.</li>
+    <li>Плаща спред и такси на брокера (като Interactive Brokers: $0,005 на акция, мин. $1) плюс таксите на SEC и FINRA при продажба.</li>
+    <li>Не купува повече от 10% от това, което пазарът търгува за минута.</li>
+    <li>В премаркета стоповете не се задействат сами — продава на следващата минута, както е при брокерите.</li>
+    <li>Парите, които виждаш, са колкото би получил, ако продаде всичко сега, след таксите.</li>
+  </ul></div>
   <div class="upd" id="upd"></div>
   <p class="note" id="rules"></p>
 </div></main>
@@ -363,10 +403,12 @@ function render(){
   const st={open:['На живо','live'],premarket:['Премаркет','live'],pre:['Преди премаркета',''],closed:['Затворено',''],holiday:['Почивен ден',''],weekend:['Уикенд','']}[d.status]||['—',''];
   $('#pill').className='pill '+st[1];$('#pillTxt').textContent=st[0];
   $('#clock').textContent=d.simMs?`NY ${nyTime(d.simMs)}`:'';
-  const tot=d.bots.reduce((s,b)=>s+b.today,0);
+  const tot=d.teamToday!=null?d.teamToday:d.bots.reduce((s,b)=>s+b.today,0); // включва и уволнените днес
   if(introDone){countTo($('#sTotal'),tot,money0);}else{$('#sTotal').dataset.v=0;$('#sTotal').textContent='$0'}
   $('#sTotal').className='big '+cls(tot);
-  $('#sTrades').textContent=d.dayTrades;$('#sFired').textContent=d.firedToday;$('#sIn').textContent=d.bots.filter(b=>b.positions.length).length+'/'+d.bots.length;
+  $('#sTrades').textContent=d.dayTrades;
+  if(d.teamTotal!=null){$('#sAll').textContent=money(d.teamTotal,true);$('#sAll').className=cls(d.teamTotal);const fa=d.firedAllPnl||0;$('#sAllNote').textContent=fa?`(с уволнените: ${money(fa,true)})`:''}
+  const fp=d.firedDayPnl||0;$('#sFiredPnl').hidden=!fp;$('#sFiredPnl b').textContent=money(fp,true);$('#sFiredPnl b').className=cls(fp);$('#sFired').textContent=d.firedToday;$('#sIn').textContent=d.bots.filter(b=>b.positions.length).length+'/'+d.bots.length;
   tape(d);
   const nf=d.fired.length?d.fired[0].firedAt:0;const unseen=d.fired.filter(f=>f.firedAt>seenFired).length;
   $('#firedBadge').hidden=!unseen||tab==='fired';$('#firedBadge').textContent=unseen;
@@ -428,6 +470,8 @@ function podium(d){
   if(rise&&!reduce){el.classList.remove('rise');void el.offsetWidth;el.classList.add('rise');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('rise'),1600)}
   top.forEach(b=>{const n=el.querySelector(`[data-num="${b.id}"]`);const prev=prevToday[b.id];if(n&&prev!=null&&Math.abs(prev-b.today)>=.5){n.dataset.v=prev;countTo(n,b.today,v=>money(v,true))}prevToday[b.id]=b.today});
 }
+function lastTrade(b){const t=(b.trades||[])[0];if(!t||!D.session||t.out<D.session.start)return '';
+  return `<div class="pos"><span class="lchip">последна: ${esc(t.sym)} <b class="${cls(t.pnl)}">${pct(t.pct)}</b></span></div>`}
 function rows(d){
   const el=$('#rows');const rest=d.bots.slice(3);$('#restCount').textContent=rest.length?`${rest.length} трейдъри`:'';
   const before={};el.querySelectorAll('.row').forEach(c=>before[c.dataset.id]=c.getBoundingClientRect().top);
@@ -435,40 +479,59 @@ function rows(d){
     return `<article class="row${danger?' danger':''}" data-id="${b.id}" style="--c:${b.color};animation-delay:${j*60}ms" tabindex="0" role="button">
       <span class="rk">${i+1}</span><span class="av">${esc(initials(b.name))}</span>
       <div class="who"><b>${esc(b.name)}</b><span><span class="tag">${esc(b.style)}</span>${fresh?'<span class="new">нов</span>':''}${danger?'<span class="edge">на косъм</span>':''}</span></div>
+      <canvas class="rspark" data-sp="${b.id}" aria-hidden="true"></canvas>
       <div class="pl"><b class="${cls(b.today)}" data-num="${b.id}">${money(b.today,true)}</b><span class="${cls(b.today)}">${pct(b.todayPct)}</span></div>
-      ${b.positions.length?`<div class="pos">${b.positions.map(p=>{const pc=(p.now/p.entry-1)*100;return `<span class="pchip"><i></i>${esc(p.sym)} <span class="${cls(pc)}">${pct(pc)}</span></span>`}).join('')}</div>`:''}
+      ${b.positions.length?`<div class="pos">${b.positions.map(p=>{const pc=p.pct!=null?p.pct:(p.now/p.entry-1)*100;return `<span class="pchip"><i></i>${esc(p.sym)} <span class="${cls(pc)}">${pct(pc)}</span></span>`}).join('')}</div>`:b.pending?`<div class="pos"><span class="pchip" style="border-style:dashed">поръчка ${esc(b.pending.s)} ≤ ${px(b.pending.limit)}</span></div>`:lastTrade(b)}
       <span class="rbar"><i style="width:${Math.round(b.risk*100)}%"></i></span></article>`}).join('')||(d.bots.length?'':'<div class="empty">Трейдърите се подготвят…</div>');
   el.querySelectorAll('.row').forEach(c=>{const id=c.dataset.id,b=d.bots.find(x=>x.id===id);
+    spark(c.querySelector('.rspark'),b,true);
     if(!reduce&&before[id]!=null){const dy=before[id]-c.getBoundingClientRect().top;if(Math.abs(dy)>2)c.animate([{transform:`translateY(${dy}px)`},{transform:'none'}],{duration:650,easing:'cubic-bezier(.2,.8,.2,1)'})}
     const prev=prevToday[id];if(prev!=null&&Math.abs(prev-b.today)>=.5){c.classList.add(b.today>prev?'fl-up':'fl-down');const n=c.querySelector('[data-num]');n.dataset.v=prev;countTo(n,b.today,v=>money(v,true))}
     prevToday[id]=b.today});
 }
 /* ——— лист с детайли ——— */
+const WHYT={tp:'цел',sl:'стоп',be:'стоп на входа',trail:'плъзгащ стоп',time:'време',rsi:'RSI',vwap:'под VWAP',eod:'край на деня',fired:'уволнение'};
 function openSheet(id,refresh){
-  const b=D&&D.bots.find(x=>x.id===id);if(!b){closeSheet();return}sheetId=id;
+  const b=D&&D.bots.find(x=>x.id===id);if(!b){closeSheet();return}
+  if(!refresh||sheetId!==id)chartSel=b.positions.length?{kind:'pos',sym:b.positions[0].sym}:null;
+  else if(chartSel&&chartSel.kind==='pos'&&!b.positions.some(p=>p.sym===chartSel.sym))chartSel=b.positions.length?{kind:'pos',sym:b.positions[0].sym}:null;
+  sheetId=id;
   const i=D.bots.indexOf(b);const s=$('#sheet');const box=$('#sheetBox');const keep=refresh?box.scrollTop:0;
   const prog=[['Поредни загуби',b.strikes/D.strikesToFire,`${b.strikes} от ${D.strikesToFire}`],['Спад от върха',Math.min(1,b.dd/D.ddFire),`${b.dd.toFixed(1).replace('.',',')}% от ${D.ddFire}%`],['Сделки на минус',b.total<0?Math.min(1,(b.wins+b.losses)/D.loserTrades):0,b.total<0?`${b.wins+b.losses} от ${D.loserTrades}`:'на плюс е']];
   box.innerHTML=`<div class="grab"></div>
     <div class="sh-top" style="--c:${b.color}"><span class="av">${esc(initials(b.name))}</span><div class="who"><b>${esc(b.name)}</b><span>№${i+1} · ${esc(b.style)} · капитал ${money(b.equity)}</span></div></div>
     <div class="sh-pl ${cls(b.today)}">${money(b.today,true)} <span style="font-size:14px;font-family:var(--mono)">${pct(b.todayPct)} днес</span></div>
+    <div class="sh-h" style="margin-top:4px">Как вървят парите му днес</div>
     <canvas class="bigspark" id="bigspark"></canvas>
     <div class="mini"><div><b class="up">${b.wins}</b><span>печеливши</span></div><div><b class="down">${b.losses}</b><span>губещи</span></div><div><b class="${cls(b.total)}">${money0(b.total)}</b><span>общо</span></div><div><b>${b.wins+b.losses?Math.round(b.wins/(b.wins+b.losses)*100)+'%':'—'}</b><span>успех</span></div></div>
-    ${b.positions.length?`<div class="sh-h">В сделка сега</div><div class="pos2">${b.positions.map(p=>{const pc=(p.now/p.entry-1)*100;return `<div class="p"><span><b>${esc(p.sym)}</b> · ${p.qty.toLocaleString('bg-BG')} бр. · ${px(p.entry)}→${px(p.now)}</span><b class="${cls(p.pnl)}">${money(p.pnl,true)}</b></div>`}).join('')}</div>`:''}
+    ${b.pending?`<div class="pend">Чака да купи <b>${esc(b.pending.s)}</b> с лимитна поръчка до <b>${px(b.pending.limit)}</b> — изпълнява се на следващата минута, ако цената не избяга.</div>`:''}
+    ${b.positions.length?`<div class="sh-h">В сделка сега</div><div class="pos2">${b.positions.map(p=>`<div class="p${chartSel&&chartSel.kind==='pos'&&chartSel.sym===p.sym?' sel':''}" data-csym="${esc(p.sym)}"><span><b>${esc(p.sym)}</b> · ${p.qty.toLocaleString('bg-BG')} бр. · ${px(p.entry)}→${px(p.now)}<span class="f" style="display:block;font-size:10.5px;color:var(--muted)">от ${nyTime(p.t)} · ${dur((D.simMs||Date.now())-p.t)} · докосни за графика</span></span><span class="r ${cls(p.pnl)}"><b>${money(p.pnl,true)}</b><small>${pct(p.pct!=null?p.pct:(p.now/p.entry-1)*100)}</small></span></div>`).join('')}</div>`:''}
+    ${chartSel?`<div class="sh-h" id="ctitle"></div><div class="chartbox" id="cbox">${b.positions.length>1&&chartSel.kind==='pos'?`<div class="ctabs">${b.positions.map(p=>`<button data-csym="${esc(p.sym)}" aria-pressed="${p.sym===chartSel.sym}">${esc(p.sym)}</button>`).join('')}</div>`:''}${chartSel.kind==='trade'&&b.positions.length?`<div class="ctabs"><button data-csym="${esc(b.positions[0].sym)}" aria-pressed="false">← към отворената сделка</button></div>`:''}<div class="ctool"><span class="seg2"><button data-cmode="line" aria-pressed="${cMode==='line'}">Линия</button><button data-cmode="candle" aria-pressed="${cMode==='candle'}">Свещи</button></span><span class="seg2"><button data-crange="near" aria-pressed="${cRange==='near'}">${chartSel.kind==='pos'?'Около входа':'Сделката'}</button><button data-crange="day" aria-pressed="${cRange==='day'}">Целия ден</button></span></div><canvas class="cchart" id="cchart"></canvas><div class="clegend" id="clegend"></div></div>`:''}
     <div class="sh-h">Риск от уволнение</div>
     <div class="riskbox">${prog.map(p=>`<div class="rline"><span>${p[0]} · <b style="color:var(--ink)">${p[2]}</b></span><span class="bar"><i style="width:${Math.round(p[1]*100)}%"></i></span></div>`).join('')}</div>
     <div class="sh-h">Стратегия</div>
     <div class="rule"><b>Купува</b><span>${esc(b.desc.buy.replace(/^Купува, когато /,'Когато '))}</span></div><div class="rule"><b>Продава</b><span>${esc(b.desc.sell)}</span></div><div class="rule"><b>Пари</b><span>${esc(b.desc.size)}</span></div>
-    <div class="sh-h">Сделки</div>
-    <div class="trades">${b.trades.length?b.trades.slice(0,15).map(t=>`<div class="tr"><span>${nyTime(t.out)}</span><span>${esc(t.sym)} ${t.qty.toLocaleString('bg-BG')} бр. ${px(t.entry)}→${px(t.exit)}</span><span class="${cls(t.pnl)}">${money(t.pnl,true)}</span></div>`).join(''):'<span class="empty" style="padding:10px">Още няма сделки.</span>'}</div>`;
+    <div class="sh-h">Сделки <span style="text-transform:none;letter-spacing:0;font-family:var(--body);font-weight:600">· докосни за графика</span></div>
+    <div class="trades">${b.trades.length?b.trades.slice(0,15).map((t,k)=>`<div class="tr${chartSel&&chartSel.kind==='trade'&&chartSel.i===k?' sel':''}" data-tr="${k}"><span>${nyTime(t.out)}</span><span>${esc(t.sym)} ${t.qty.toLocaleString('bg-BG')} бр. ${px(t.entry)}→${px(t.exit)}${t.fees!=null?`<span class="f">такси ${money(t.fees)} · ${WHYT[t.why]||''}</span>`:''}</span><span class="${cls(t.pnl)}" style="text-align:right">${money(t.pnl,true)}<span class="f" style="text-align:right;color:inherit">${pct(t.pct)}</span></span></div>`).join(''):'<span class="empty" style="padding:10px">Още няма сделки.</span>'}</div>`;
   if(!refresh){s.hidden=false;document.body.style.overflow='hidden'}else box.scrollTop=keep;
-  spark($('#bigspark'),b);
+  const bs=$('#bigspark');spark(bs,b);scrub(bs,hx=>spark(bs,b,false,hx));drawSel(b);
 }
-function closeSheet(){sheetId=null;$('#sheet').hidden=true;document.body.style.overflow=''}
+$('#sheetBox').addEventListener('click',e=>{const b=D&&D.bots.find(x=>x.id===sheetId);if(!b)return;
+  const cm=e.target.closest('[data-cmode]');if(cm){cMode=cm.dataset.cmode;try{localStorage.setItem('fu-cmode',cMode)}catch(_){}openSheet(sheetId,true);return}
+  const cr=e.target.closest('[data-crange]');if(cr){cRange=cr.dataset.crange;try{localStorage.setItem('fu-crange',cRange)}catch(_){}openSheet(sheetId,true);return}
+  const cs=e.target.closest('[data-csym]');if(cs){chartSel={kind:'pos',sym:cs.dataset.csym};openSheet(sheetId,true);return}
+  const tr=e.target.closest('[data-tr]');if(tr){const k=+tr.dataset.tr,t=b.trades[k];if(!t)return;
+    chartSel={kind:'trade',i:k};openSheet(sheetId,true);const cb=$('#cbox');if(cb)cb.scrollIntoView({behavior:'smooth',block:'center'})}});
+function closeSheet(){sheetId=null;chartSel=null;$('#sheet').hidden=true;document.body.style.overflow=''}
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet'||e.target.classList.contains('grab'))closeSheet()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheet()});
-function spark(cv,b){
+function spark(cv,b,mini,hx){
   if(!cv||!b)return;const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return;cv.width=w*r;cv.height=h*r;const x=cv.getContext('2d');x.scale(r,r);
-  const pts=b.hist||[];if(pts.length<2){x.fillStyle='#9A8FA6';x.font='600 12px Onest';x.fillText('графиката ще се появи с първите минути',0,h/2+4);return}
+  const pts=b.hist||[];if(pts.length<2){if(!mini){x.fillStyle='#9A8FA6';x.font='600 12px Onest';x.fillText('графиката ще се появи с първите минути',0,h/2+4)}return}
+  if(mini){const base=pts[0][1],vals=pts.map(p=>p[1]);let mn=Math.min(base,...vals),mx=Math.max(base,...vals);if(mx-mn<1){mx+=.5;mn-=.5}
+    const t0=pts[0][0],t1=pts[pts.length-1][0]||t0+1,X=t=>(t-t0)/(t1-t0||1)*(w-4)+2,Y=v=>h-3-(v-mn)/(mx-mn)*(h-6);
+    const col=vals[vals.length-1]>=base?'#2BF5A0':'#FF2E63';x.strokeStyle='rgba(154,143,166,.3)';x.setLineDash([2,3]);x.beginPath();x.moveTo(0,Y(base));x.lineTo(w,Y(base));x.stroke();x.setLineDash([]);
+    x.beginPath();pts.forEach((p,i)=>i?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1])));x.strokeStyle=col;x.lineWidth=1.6;x.lineJoin='round';x.stroke();return}
   const base=pts[0][1];const vals=pts.map(p=>p[1]);let mn=Math.min(base,...vals),mx=Math.max(base,...vals);if(mx-mn<1){mx+=.5;mn-=.5}
   const t0=pts[0][0],t1=pts[pts.length-1][0]||t0+1;const X=t=>(t-t0)/(t1-t0||1)*(w-8)+2,Y=v=>h-4-(v-mn)/(mx-mn)*(h-8);
   x.strokeStyle='rgba(154,143,166,.35)';x.setLineDash([3,5]);x.beginPath();x.moveTo(0,Y(base));x.lineTo(w,Y(base));x.stroke();x.setLineDash([]);
@@ -477,6 +540,80 @@ function spark(cv,b){
   x.beginPath();pts.forEach((p,i)=>i?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1])));x.lineTo(X(t1),h);x.lineTo(X(t0),h);x.closePath();x.fillStyle=g;x.fill();
   x.beginPath();pts.forEach((p,i)=>i?x.lineTo(X(p[0]),Y(p[1])):x.moveTo(X(p[0]),Y(p[1])));x.strokeStyle=col;x.lineWidth=2.4;x.lineJoin='round';x.shadowColor=col;x.shadowBlur=10;x.stroke();x.shadowBlur=0;
   const lp=pts[pts.length-1];x.fillStyle=col;x.beginPath();x.arc(X(lp[0]),Y(lp[1]),4,0,7);x.fill();
+  // сделките на днешния ден — точки по линията (зелено печалба, червено загуба)
+  const yAt=t=>{let best=pts[0];for(const p of pts){if(p[0]<=t)best=p;else break}return Y(best[1])};
+  for(const t of (b.trades||[])){if(t.out<t0||t.out>t1)continue;x.fillStyle=t.pnl>=0?'#2BF5A0':'#FF2E63';x.strokeStyle='#141019';x.lineWidth=2;x.beginPath();x.arc(X(t.out),yAt(t.out),4.5,0,7);x.fill();x.stroke()}
+  x.fillStyle='rgba(154,143,166,.85)';x.font='700 10px JetBrains Mono';x.textAlign='left';x.fillText(money(mx),2,10);x.fillText(money(mn),2,h-2);
+  x.textAlign='right';x.fillText(nyTime(t0)+' – '+nyTime(t1),w-2,10);
+  if(hx!=null){const tt=t0+(Math.max(2,Math.min(w-6,hx))-2)/(w-8)*(t1-t0);let q=pts[0];for(const p of pts){if(p[0]<=tt)q=p;else break}
+    const xx=X(q[0]),yy=Y(q[1]),ch=q[1]-base;x.strokeStyle='rgba(246,241,234,.55)';x.lineWidth=1;x.setLineDash([3,3]);x.beginPath();x.moveTo(xx,0);x.lineTo(xx,h);x.stroke();x.setLineDash([]);
+    x.fillStyle='#F6F1EA';x.beginPath();x.arc(xx,yy,4,0,7);x.fill();
+    const txt=`${money(q[1])}  ${money(ch,true)}  ${nyTime(q[0])}`;x.font='800 11px JetBrains Mono';const tw=x.measureText(txt).width+16;const bx=Math.min(Math.max(0,xx-tw/2),w-tw);
+    x.fillStyle='rgba(12,9,16,.92)';x.strokeStyle=ch>=0?'#2BF5A0':'#FF2E63';x.beginPath();x.roundRect?x.roundRect(bx,14,tw,22,7):x.rect(bx,14,tw,22);x.fill();x.stroke();x.fillStyle=ch>=0?'#2BF5A0':'#FF2E63';x.textAlign='left';x.fillText(txt,bx+8,29)}
+}
+/* ——— графика на акцията (свещи) ——— */
+const chartCache={};let chartSel=null,cMode='line',cRange='near';
+try{cMode=localStorage.getItem('fu-cmode')||'line';cRange=localStorage.getItem('fu-crange')||'near'}catch(e){}
+async function getChart(sym,rg){const key=sym+(rg?'|'+rg.from:'');const c=chartCache[key];if(c&&(rg||Date.now()-c.at<20000))return c.d;
+  try{const r=await fetch('/api/chart?s='+encodeURIComponent(sym)+(rg?`&from=${rg.from}&to=${rg.to}`:''));const d=await r.json();if(!r.ok||!d.bars)throw 0;chartCache[key]={at:Date.now(),d};return d}catch(e){return c?c.d:null}}
+function candles(cv,d,o,hx){
+  if(!cv)return;cv._c={d,o};const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return;cv.width=w*r;cv.height=h*r;const x=cv.getContext('2d');x.scale(r,r);
+  if(!d||!d.bars||!d.bars.length){x.fillStyle='#9A8FA6';x.font='600 12px Onest';x.textAlign='center';x.fillText(d===false?'Зарежда графиката…':'Няма данни за графиката в момента',w/2,h/2);return}
+  // VWAP от началото на сесията
+  let pv=0,vv=0;const vw=d.bars.map(b=>{const tp=(b[2]+b[3]+b[4])/3;pv+=tp*b[5];vv+=b[5];return vv?pv/vv:b[4]});
+  const from=cRange==='day'?d.bars[0][0]:(o.from||d.bars[0][0]),to=cRange==='day'?d.bars[d.bars.length-1][0]:(o.to||d.bars[d.bars.length-1][0]);
+  let idx=d.bars.map((b,i)=>i).filter(i=>d.bars[i][0]>=from&&d.bars[i][0]<=to);if(idx.length<8)idx=d.bars.map((b,i)=>i).slice(-60);
+  const B=idx.map(i=>d.bars[i]);const RW=58,VH=h*.17,PH=h-VH-18;
+  let mn=Math.min(...B.map(b=>b[3])),mx=Math.max(...B.map(b=>b[2]));for(const v of [o.entry,o.stop,o.tp,o.exit])if(v){mn=Math.min(mn,v);mx=Math.max(mx,v)}
+  const pad=(mx-mn)*.08||mx*.01;mn-=pad;mx+=pad;
+  const cw=(w-RW)/B.length,X=i=>i*cw+cw/2,Y=v=>4+(mx-v)/(mx-mn)*(PH-8);
+  x.strokeStyle='rgba(255,255,255,.05)';x.lineWidth=1;for(let k=1;k<4;k++){const yy=PH*k/4;x.beginPath();x.moveTo(0,yy);x.lineTo(w-RW,yy);x.stroke()}
+  const vmax=Math.max(...B.map(b=>b[5]))||1;
+  B.forEach((b,i)=>{const up=b[4]>=b[1];x.fillStyle=up?'rgba(43,245,160,.22)':'rgba(255,46,99,.22)';const vh=b[5]/vmax*VH;x.fillRect(X(i)-Math.max(1,cw*.35),h-18-vh,Math.max(1.5,cw*.7),vh)});
+  if(cMode==='line'){ // като в Trading 212: плавна линия с градиент
+    const upDay=B[B.length-1][4]>=B[0][1],col=upDay?'#2BF5A0':'#FF2E63';
+    const g=x.createLinearGradient(0,0,0,PH);g.addColorStop(0,col+'55');g.addColorStop(1,col+'00');
+    x.beginPath();B.forEach((b,i)=>i?x.lineTo(X(i),Y(b[4])):x.moveTo(X(i),Y(b[4])));x.lineTo(X(B.length-1),PH);x.lineTo(X(0),PH);x.closePath();x.fillStyle=g;x.fill();
+    x.beginPath();B.forEach((b,i)=>i?x.lineTo(X(i),Y(b[4])):x.moveTo(X(i),Y(b[4])));x.strokeStyle=col;x.lineWidth=2.2;x.lineJoin='round';x.shadowColor=col;x.shadowBlur=8;x.stroke();x.shadowBlur=0;
+  }else B.forEach((b,i)=>{const up=b[4]>=b[1];const col=up?'#2BF5A0':'#FF2E63';
+    x.strokeStyle=col;x.lineWidth=1;x.beginPath();x.moveTo(X(i),Y(b[2]));x.lineTo(X(i),Y(b[3]));x.stroke();
+    const y1=Y(Math.max(b[1],b[4])),y2=Y(Math.min(b[1],b[4]));x.fillStyle=col;x.fillRect(X(i)-Math.max(.8,cw*.32),y1,Math.max(1.6,cw*.64),Math.max(1,y2-y1))});
+  x.beginPath();idx.forEach((gi,i)=>{const y=Y(vw[gi]);i?x.lineTo(X(i),y):x.moveTo(X(i),y)});x.strokeStyle='#B794F6';x.lineWidth=1.4;x.setLineDash([]);x.stroke();
+  const line=(v,col,dash,lbl)=>{if(!v)return;const y=Y(v);x.strokeStyle=col;x.lineWidth=1.3;x.setLineDash(dash);x.beginPath();x.moveTo(0,y);x.lineTo(w-RW,y);x.stroke();x.setLineDash([]);
+    x.fillStyle=col;x.beginPath();x.roundRect?x.roundRect(w-RW+2,y-8,RW-2,16,4):x.rect(w-RW+2,y-8,RW-2,16);x.fill();x.fillStyle='#0C0910';x.font='800 9.5px JetBrains Mono';x.textAlign='center';x.fillText(lbl,w-RW/2+1,y+3.5)};
+  line(o.tp,'#2BF5A0',[5,4],px(o.tp));line(o.stop,'#FF2E63',[5,4],px(o.stop));line(o.entry,'#FF6A1A',[],px(o.entry));
+  if(o.exit)line(o.exit,o.exit>=o.entry?'#2BF5A0':'#FF2E63',[2,3],px(o.exit));
+  else{const last=B[B.length-1][4];const y=Y(last);x.fillStyle='#F6F1EA';x.beginPath();x.arc(X(B.length-1),y,3,0,7);x.fill()}
+  const mark=(t,up,col)=>{let i=B.findIndex(b=>b[0]>=t);if(i<0)i=B.length-1;const b=B[i];const xx=X(i);x.fillStyle=col;x.beginPath();
+    if(up){const y=Y(b[3])+6;x.moveTo(xx,y);x.lineTo(xx-6,y+9);x.lineTo(xx+6,y+9)}else{const y=Y(b[2])-6;x.moveTo(xx,y);x.lineTo(xx-6,y-9);x.lineTo(xx+6,y-9)}x.closePath();x.fill()};
+  if(o.tIn)mark(o.tIn,true,'#FF6A1A');if(o.tOut)mark(o.tOut,false,o.exit>=o.entry?'#2BF5A0':'#FF2E63');
+  x.fillStyle='rgba(154,143,166,.85)';x.font='700 10px JetBrains Mono';x.textAlign='left';x.fillText(nyTime(B[0][0]),2,h-4);x.textAlign='right';x.fillText(nyTime(B[B.length-1][0]),w-RW-2,h-4);
+  x.textAlign='center';x.fillText(nyTime(B[Math.floor(B.length/2)][0]),(w-RW)/2,h-4);
+  // кръстче при плъзгане с пръст: цена, промяна от входа/началото, час
+  if(hx!=null){const i=Math.max(0,Math.min(B.length-1,Math.floor(hx/cw)));const b=B[i],xx=X(i),yy=Y(b[4]);
+    x.strokeStyle='rgba(246,241,234,.55)';x.lineWidth=1;x.setLineDash([3,3]);x.beginPath();x.moveTo(xx,0);x.lineTo(xx,h-18);x.moveTo(0,yy);x.lineTo(w-RW,yy);x.stroke();x.setLineDash([]);
+    x.fillStyle='#F6F1EA';x.beginPath();x.arc(xx,yy,4,0,7);x.fill();
+    const ref=o.entry||B[0][1],ch=(b[4]/ref-1)*100;const txt=`${px(b[4])}  ${pct(ch)}${o.entry?' от входа':''}  ${nyTime(b[0])}`;
+    x.font='800 11px JetBrains Mono';const tw=x.measureText(txt).width+16;let bx=Math.min(Math.max(0,xx-tw/2),w-RW-tw);
+    x.fillStyle='rgba(12,9,16,.92)';x.strokeStyle=ch>=0?'#2BF5A0':'#FF2E63';x.beginPath();x.roundRect?x.roundRect(bx,2,tw,22,7):x.rect(bx,2,tw,22);x.fill();x.stroke();
+    x.fillStyle=ch>=0?'#2BF5A0':'#FF2E63';x.textAlign='left';x.fillText(txt,bx+8,17)}
+}
+// плъзгане по графиките (свещи и „как вървят парите“)
+function scrub(cv,draw){const at=e=>{const r=cv.getBoundingClientRect();return e.clientX-r.left};
+  cv.onpointerdown=e=>{cv._on=true;draw(at(e))};cv.onpointermove=e=>{if(cv._on||e.pointerType==='mouse')draw(at(e))};
+  const off=()=>{cv._on=false;draw(null)};cv.onpointerup=off;cv.onpointerleave=off;cv.onpointercancel=off}
+async function drawSel(b){
+  const box=$('#cbox');if(!box||!chartSel)return;const cv=$('#cchart');
+  let o,sym;
+  if(chartSel.kind==='pos'){const p=b.positions.find(q=>q.sym===chartSel.sym)||b.positions[0];if(!p)return;sym=p.sym;o={entry:p.entry,stop:p.stop,tp:p.tp,tIn:p.t,from:p.t-45*60000}
+    $('#clegend').innerHTML=`<span><i style="background:#FF6A1A"></i>вход <b>${px(p.entry)}</b></span><span><i style="background:#FF2E63"></i>стоп <b>${px(p.stop)}</b></span><span><i style="background:#2BF5A0"></i>цел <b>${px(p.tp)}</b></span><span><i style="background:#B794F6"></i>VWAP</span><span>сега <b class="${cls(p.pnl)}">${px(p.now)} · ${money(p.pnl,true)} · ${pct(p.pct!=null?p.pct:(p.now/p.entry-1)*100)}</b></span>${p.exiting?'<span class="down">продава на следващата минута</span>':''}`}
+  let rg=null;
+  if(chartSel.kind==='trade'){const t=b.trades[chartSel.i];if(t&&!(D.session&&t.out>=D.session.start))rg={from:t.in-90*60000,to:t.out+60*60000}}
+  if(chartSel.kind!=='pos'){const t=b.trades[chartSel.i];if(!t)return;sym=t.sym;o={entry:t.entry,exit:t.exit,stop:t.stop,tp:t.tp,tIn:t.in,tOut:t.out,from:t.in-30*60000,to:t.out+20*60000};
+    $('#clegend').innerHTML=`<span><b>${esc(t.sym)}</b> ${nyTime(t.in)}→${nyTime(t.out)}</span><span>вход <b>${px(t.entry)}</b></span><span>изход <b>${px(t.exit)}</b></span><span>такси <b>${t.fees!=null?money(t.fees):'—'}</b></span><span>резултат <b class="${cls(t.pnl)}">${money(t.pnl,true)} · ${pct(t.pct)}</b></span><span>${new Date(t.out).toLocaleDateString('bg-BG',{timeZone:'America/New_York',day:'numeric',month:'short'})}</span>`}
+  $('#ctitle').textContent=chartSel.kind==='pos'?'Графика · '+sym+' на живо':'Графика на сделката · '+sym;
+  const c=chartCache[sym+(rg?'|'+rg.from:'')];candles(cv,c?c.d:false,o);scrub(cv,hx=>{const k=cv._c;if(k)candles(cv,k.d,k.o,hx)});
+  const d=await getChart(sym,rg);if($('#cchart')===cv&&sheetId===b.id&&!cv._on)candles(cv,d,o);
 }
 /* ——— на живо, статистика, уволнени ——— */
 function feedV(d){
@@ -511,7 +648,7 @@ $('#podium').addEventListener('click',pick);$('#rows').addEventListener('click',
 ['#podium','#rows'].forEach(s=>$(s).addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(e)}}));
 setInterval(()=>{if(!lastFetch)return;const s=Math.round((Date.now()-lastFetch)/1000);$('#upd').textContent=`Обновено преди ${s} с`+(D&&D.src==='alpaca-iex'?' · резервни данни (Alpaca IEX)':'')},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
-addEventListener('resize',()=>{if(D){race(D);if(sheetId)spark($('#bigspark'),D.bots.find(x=>x.id===sheetId))}});
+addEventListener('resize',()=>{if(D){race(D);rows(D);if(sheetId)openSheet(sheetId,true)}});
 for(const v of TABS)$('#v-'+v).hidden=v!==tab;
 document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.v===tab));$('#ind').style.transform=`translateX(${TABS.indexOf(tab)*100}%)`;
 load();setInterval(()=>{if(!document.hidden)load()},15000);
