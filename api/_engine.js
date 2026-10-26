@@ -105,8 +105,9 @@ async function yDaily(sym) {
   return ybars(d?.chart?.result?.[0]);
 }
 async function yScreen(id) {
-  const d = await yget(`/v1/finance/screener/predefined/saved?scrIds=${id}&count=100`);
-  return (d?.finance?.result?.[0]?.quotes || []).map(q => ({ sym: q.symbol, price: q.regularMarketPrice, vol: q.regularMarketVolume, chg: q.regularMarketChangePercent, exch: q.exchange, delay: q.exchangeDataDelayedBy, type: q.quoteType }));
+  const d = await yget(`/v1/finance/screener/predefined/saved?formatted=false&scrIds=${id}&count=100`);
+  const num = x => x && typeof x === 'object' ? x.raw : x; // Yahoo понякога дава {raw, fmt} вместо число
+  return (d?.finance?.result?.[0]?.quotes || []).map(q => ({ sym: q.symbol, price: num(q.regularMarketPrice), vol: num(q.regularMarketVolume), chg: num(q.regularMarketChangePercent), exch: q.exchange, delay: num(q.exchangeDataDelayedBy), type: q.quoteType }));
 }
 
 /* ---------------- данни: Alpaca IEX в реално време (резерва) ---------------- */
@@ -155,6 +156,7 @@ async function ySpark(syms) {
 async function pickRadar() {
   const meta = new Map();
   const res = await Promise.allSettled(['small_cap_gainers', 'day_gainers', 'most_actives', 'aggressive_small_caps'].map(id => yScreen(id)));
+  pickRadar.diag = { ok: res.filter(r => r.status === 'fulfilled').length, raw: res.reduce((a, r) => a + (r.status === 'fulfilled' ? r.value.length : 0), 0), err: (res.find(r => r.status === 'rejected') || {}).reason?.message };
   for (const r of res) if (r.status === 'fulfilled') for (const q of r.value) {
     if (!okSym(q.sym) || !(q.price >= PRICE_MIN && q.price <= PRICE_MAX) || !(q.vol > 200000)) continue;
     if (OTC.has(q.exch) || (q.delay != null && q.delay > 0) || (q.type && q.type !== 'EQUITY')) continue;
