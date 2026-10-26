@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up</title>
-<meta name="fu-ver" content="27">
+<meta name="fu-ver" content="28">
 <meta name="theme-color" content="#0D0B1A">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -461,7 +461,12 @@ function setupCv(cv){const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.cl
 function rr(x,a,b,w,h,r){x.beginPath();x.roundRect?x.roundRect(a,b,w,h,r):x.rect(a,b,w,h)}
 function badge(x,cx,cy,k,big){const s=big?24:20,colr=k==='B'?'#D4FF3A':'#FF3D8B';x.save();x.shadowColor=colr;x.shadowBlur=big?14:6;x.fillStyle=colr;rr(x,cx-s/2,cy-s/2,s,s,7);x.fill();x.restore();
   x.strokeStyle='#0D0B1A';x.lineWidth=2;rr(x,cx-s/2,cy-s/2,s,s,7);x.stroke();x.fillStyle='#0D0B1A';x.font=`900 ${big?11:10}px Unbounded, Arial Black, sans-serif`;x.textAlign='center';x.textBaseline='middle';x.fillText(k,cx,cy+.5);x.textBaseline='alphabetic'}
-const tlabel=(t,span)=>span>20*3600e3?nyDate(t)+' '+nyTime(t):nyTime(t);
+const nyDay=ms=>new Date(ms).toLocaleDateString('bg-BG',{timeZone:'America/New_York',weekday:'short',day:'numeric',month:'numeric'}).replace(/\.$/,'');
+const nyKey=ms=>new Date(ms).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
+const tlabel=(t,span)=>nyDay(t)+' · '+nyTime(t); // винаги с деня: „пн, 26.10 · 13:09“
+// вертикални линии и надписи при смяна на деня (за графики, които обхващат няколко дни)
+function dayMarks(x,ts,X,top,bottom){let prev=null;x.save();x.font='800 9.5px JetBrains Mono';x.textAlign='left';
+  ts.forEach((t,i)=>{const k=nyKey(t);if(prev!==null&&k!==prev){const xx=X(i);x.strokeStyle='rgba(212,255,58,.25)';x.setLineDash([2,4]);x.lineWidth=1;x.beginPath();x.moveTo(xx,top);x.lineTo(xx,bottom);x.stroke();x.setLineDash([]);x.fillStyle='rgba(212,255,58,.8)';x.fillText(nyDay(t),xx+3,top+9)}prev=k});x.restore()}
 /* линейна графика като в Trading 212: светеща линия, B/S, плъзгане с пръст; o.onHover(i|null) */
 function lineChart(cv,pts,o={},hx){
   const c=setupCv(cv);if(!c)return;const {x,w,h}=c;
@@ -479,6 +484,7 @@ function lineChart(cv,pts,o={},hx){
   const at=t=>{if(t<pts[0][0]||t>pts[n-1][0]+90000)return -1;const i=pts.findIndex(p=>p[0]>=t);return i<0?n-1:i};
   if(m===n){for(const mk of (o.marks||[])){const i=at(mk.t);if(i<0)continue;const y=Y(vals[i]),by=y+(mk.k==='B'?20:-20);x.strokeStyle=mk.k==='B'?'rgba(212,255,58,.6)':'rgba(255,61,139,.6)';x.lineWidth=1;x.beginPath();x.moveTo(X(i),y);x.lineTo(X(i),by);x.stroke();badge(x,X(i),by,mk.k,mk.big)}
     if(hx==null){const ly=Y(vals[n-1]);x.fillStyle=c1;x.globalAlpha=.2;x.beginPath();x.arc(X(n-1)-2,ly,11,0,7);x.fill();x.globalAlpha=1;x.beginPath();x.arc(X(n-1)-2,ly,4.5,0,7);x.fill()}}
+  dayMarks(x,pts.map(p=>p[0]),X,0,H);
   x.fillStyle='rgba(163,157,194,.85)';x.font='700 10px JetBrains Mono';x.textAlign='left';x.fillText(tlabel(pts[0][0],span),2,h-3);x.textAlign='right';x.fillText(tlabel(pts[n-1][0],span),w-RW-2,h-3);
   if(hx!=null){const i=Math.max(0,Math.min(n-1,Math.round((hx-3)/(w-RW-6)*(n-1))));const xx=X(i),yy=Y(vals[i]);
     x.strokeStyle='rgba(244,242,255,.55)';x.setLineDash([3,3]);x.lineWidth=1;x.beginPath();x.moveTo(xx,0);x.lineTo(xx,H);x.stroke();x.setLineDash([]);
@@ -737,7 +743,7 @@ function traderPage2(refresh){
   const cv=$('#tChart');const pts=tfFilter(b.hist||[],tTf);
   const draw=hx=>lineChart(cv,pts,{marks:botMarks(b),empty:'Графиката ще се появи с първите минути',onHover:(i,p,base)=>{
     if(i==null){$('#tcLbl').textContent='Капитал';$('#tcVal').textContent=money(b.equity);const c=$('#tcChg');c.textContent=`${money(b.today,true)} · ${pct(b.todayPct)} днес`;c.className=cls(b.today);return}
-    const ch=p[i][1]-base;$('#tcLbl').textContent='В '+nyTime(p[i][0]);$('#tcVal').textContent=money(p[i][1]);const c=$('#tcChg');c.textContent=`${money(ch,true)} · ${pct(ch/base*100)}`;c.className=cls(ch)}},hx);
+    const ch=p[i][1]-base;$('#tcLbl').textContent=tlabel(p[i][0]);$('#tcVal').textContent=money(p[i][1]);const c=$('#tcChg');c.textContent=`${money(ch,true)} · ${pct(ch/base*100)}`;c.className=cls(ch)}},hx);
   draw();scrub(cv,draw);
 }
 
@@ -767,7 +773,8 @@ function candles(cv,d,o,hx){
   for(const t of tags){const ty=t.ty??t.y;x.fillStyle=t.c;rr(x,w-RW+2,ty-8,RW-3,16,5);x.fill();x.fillStyle='#0D0B1A';x.font='800 9px JetBrains Mono';x.textAlign='center';x.fillText(t.l,w-RW/2,ty+3.2)}
   for(const mk of (o.marks||[])){if(mk.t<B[0][0]||mk.t>B[B.length-1][0]+60000)continue;let i=B.findIndex(b=>b[0]>=mk.t);if(i<0)i=B.length-1;const y=Y(mk.p),xx=X(i),by=y+(mk.k==='B'?26:-26);
     x.strokeStyle=mk.k==='B'?'rgba(212,255,58,.8)':'rgba(255,61,139,.8)';x.lineWidth=1;x.beginPath();x.moveTo(xx,y);x.lineTo(xx,by);x.stroke();x.fillStyle='#F4F2FF';x.beginPath();x.arc(xx,y,2.5,0,7);x.fill();badge(x,xx,by,mk.k,mk.big)}
-  x.fillStyle='rgba(163,157,194,.85)';x.font='700 10px JetBrains Mono';x.textAlign='left';x.fillText(nyTime(B[0][0]),2,h-4);x.textAlign='right';x.fillText(nyTime(B[B.length-1][0]),w-RW-2,h-4);
+  dayMarks(x,B.map(b=>b[0]),X,0,h-18);
+  x.fillStyle='rgba(163,157,194,.85)';x.font='700 10px JetBrains Mono';x.textAlign='left';x.fillText(tlabel(B[0][0]),2,h-4);x.textAlign='right';x.fillText(tlabel(B[B.length-1][0]),w-RW-2,h-4);
   if(hx!=null){const i=Math.max(0,Math.min(B.length-1,Math.floor(hx/cw)));const b=B[i],xx=X(i),yy=Y(b[4]);x.strokeStyle='rgba(244,242,255,.55)';x.setLineDash([3,3]);x.beginPath();x.moveTo(xx,0);x.lineTo(xx,h-18);x.moveTo(0,yy);x.lineTo(w-RW,yy);x.stroke();x.setLineDash([]);
     x.fillStyle='#0D0B1A';x.strokeStyle='#F4F2FF';x.lineWidth=3;x.beginPath();x.arc(xx,yy,5,0,7);x.fill();x.stroke();if(o.onHover)o.onHover(b)}else if(o.onHover)o.onHover(null);
 }
@@ -802,7 +809,7 @@ function tradePage(refresh){
   </div>`;
   if(refresh)pg.scrollTop=keep;
   const cv=$('#cChart');o.onHover=bar=>{if(!bar){$('#cLbl').textContent=head.lbl;$('#cVal').textContent=px(head.price);const c=$('#cChg');c.textContent=`${pct(head.ch)} от входа`;c.className='pill'+(head.ch<0?' neg':'');return}
-    const ch=(bar[4]/o.entry-1)*100;$('#cLbl').textContent='В '+nyTime(bar[0]);$('#cVal').textContent=px(bar[4]);const c=$('#cChg');c.textContent=`${pct(ch)} от входа`;c.className='pill'+(ch<0?' neg':'')};
+    const ch=(bar[4]/o.entry-1)*100;$('#cLbl').textContent=tlabel(bar[0]);$('#cVal').textContent=px(bar[4]);const c=$('#cChg');c.textContent=`${pct(ch)} от входа`;c.className='pill'+(ch<0?' neg':'')};
   const key=sym+(rg?'|'+rg.from:'');const cc=chartCache[key];candles(cv,cc?cc.d:false,o);scrub(cv,hx=>{const k=cv._c;if(k)candles(cv,k.d,k.o,hx)});
   getChart(sym,rg).then(d=>{if($('#cChart')===cv&&!cv._on)candles(cv,d,o)});
 }
