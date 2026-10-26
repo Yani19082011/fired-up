@@ -8,6 +8,8 @@ module.exports = async (req, res) => {
       try { const r = await E.tickWithLock(Date.now(), 25000); st = r.st || st; }
       catch (e) { console.error('inline tick', e.message); if (!st) throw e; }
     }
+    const id = String(req.query.bot || '');
+    if (id) { const H = await E.loadHist().catch(() => ({})); const v = E.view(st, Date.now(), { full: id, hist: H[id] }); const b = v.bots.find(x => x.id === id); return res.status(b ? 200 : 404).json(b ? { bot: b } : { error: 'no_bot' }); }
     res.status(200).json(E.view(st));
   } catch (e) {
     const m = String(e.message || e);
