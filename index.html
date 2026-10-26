@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up</title>
-<meta name="fu-ver" content="30">
+<meta name="fu-ver" content="31">
 <meta name="theme-color" content="#F5F6F8">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -343,7 +343,7 @@ nav.tabs .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;b
     <div class="box" id="miniFeed"></div>
     <button class="mvp" type="button" id="mvp" hidden></button>
     <div class="h"><b>Трейдъри</b><span id="tCount">★ = следиш го</span></div>
-    <div class="tctl"><input type="search" id="tq" placeholder="Търси трейдър или стратегия…" aria-label="Търси трейдър"><select id="tsort" aria-label="Подреди"><option value="today">Днес %</option><option value="total">Общо %</option><option value="wr">Успех</option><option value="name">Име</option></select></div>
+    <div class="tctl"><input type="search" id="tq" placeholder="Търси трейдър, стратегия или територия…" aria-label="Търси трейдър"><select id="tsort" aria-label="Подреди"><option value="today">Днес %</option><option value="total">Общо %</option><option value="wr">Успех</option><option value="name">Име</option></select></div>
     <div class="filt" id="filt"><button type="button" data-f="all">Всички</button><button type="button" data-f="trade">В сделка</button><button type="button" data-f="edge">На косъм</button><button type="button" data-f="fav">★ Следени</button></div>
     <div class="grid" id="rows"></div>
     <button type="button" class="more" id="moreBtn" hidden></button>
@@ -557,7 +557,7 @@ function rows(d){
   const el=$('#rows');
   document.querySelectorAll('#filt button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.f===filt));$('#tsort').value=tsort;
   const q=tq.trim().toLowerCase();const rank={};d.bots.forEach((b,i)=>rank[b.id]=i+1);
-  let list=d.bots.map(b=>({b,st:status(b)})).filter(({b,st})=>(filt==='all'||(filt==='trade'&&st[2]==='trade')||(filt==='edge'&&b.risk>=.67)||(filt==='fav'&&favs.has(b.id)))&&(!q||b.name.toLowerCase().includes(q)||String(b.style).toLowerCase().includes(q)));
+  let list=d.bots.map(b=>({b,st:status(b)})).filter(({b,st})=>(filt==='all'||(filt==='trade'&&st[2]==='trade')||(filt==='edge'&&b.risk>=.67)||(filt==='fav'&&favs.has(b.id)))&&(!q||b.name.toLowerCase().includes(q)||String(b.style).toLowerCase().includes(q)||String(b.zone||"").toLowerCase().includes(q)));
   const tm=filt==='trade',pos=b=>b.positions[0];
   const S={today:(a,b)=>(b.b.todayPct||0)-(a.b.todayPct||0),total:(a,b)=>b.b.total-a.b.total,wr:(a,b)=>(b.b.winRate??-1)-(a.b.winRate??-1)||b.b.closed-a.b.closed,name:(a,b)=>a.b.name.localeCompare(b.b.name,'bg')};
   list.sort(tm?(a,b)=>(pos(b.b)?pos(b.b).pct:-1e9)-(pos(a.b)?pos(a.b).pct:-1e9):(S[tsort]||S.today));
@@ -617,6 +617,7 @@ function firedV(d){
 }
 function realNote(d){return `<div class="card real"><b class="d" style="font-size:12px;letter-spacing:.06em">КАТО С ИСТИНСКИ ПАРИ</b><ul>
   <li>Купува на следващата минута след сигнала с лимитна поръчка — ако цената избяга, не купува.</li>
+  ${d.scan?`<li>Радарът сканира ${d.scan.radar} акции всяка минута, а ${d.scan.focus} от тях (най-живите) се гледат отблизо с пълни минутни свещи. Всеки трейдър ловува само в своята територия: ${Object.entries(d.zones||{}).map(([k,v])=>`${esc(k)} (${v})`).join(', ')}.</li>`:''}
   <li>Всеки започва с ${money0(d.startCash)}. Класирането е по процент — важно е колко добре търгува, не колко пари има. Брокерът е без комисиона (като Trading 212 или Alpaca) — плаща спреда и регулаторните такси на SEC/FINRA при продажба.</li>
   <li>Не купува повече от 10% от минутния обем; в премаркета стоповете не се задействат сами.</li>
   <li>Ако борсата спре акцията (halt), не може да продаде, докато не я пуснат — дори да е в края на деня. Списъкът със спрените акции е официалният на Nasdaq, в реално време.</li>
@@ -721,7 +722,7 @@ function traderPage2(refresh){
   const rc=v=>v>=.67?'#E5484D':v>=.34?'#D99A00':'#00A35C';
   pg.innerHTML=`<div class="glowtop" style="--gl:${b.color}55"></div><div class="wrap" style="position:relative">
     <div class="ph"><button class="back" type="button" data-close="t" aria-label="Назад">${BACK}</button><span class="av pav" style="--c:${b.color};--glc:${b.color}88">${esc(initials(b.name))}</span>
-      <span class="pt"><b>${esc(b.name)}</b><span>№${i+1} · ${esc(b.style)} · нает преди ${dur(now()-b.hiredAt)}</span></span>
+      <span class="pt"><b>${esc(b.name)}</b><span>№${i+1} · ${esc(b.style)}${b.zone?` · 🎯 ${esc(b.zone)}`:''} · нает преди ${dur(now()-b.hiredAt)}</span></span>
       <button class="star icb" type="button" data-star="${b.id}" aria-pressed="${fav}" aria-label="Следи ${esc(b.name)}" style="background:rgba(245,246,248,.45)">${STAR}</button></div>
     <div class="cap"><span class="l"><small id="tcLbl">Капитал</small><b class="num" id="tcVal">${money(b.equity)}</b><i id="tcChg" class="${cls(b.today)}">${money(b.today,true)} · ${pct(b.todayPct)} днес</i></span>
       <span class="lives"><small>ЖИВОТИ</small><span>${Array.from({length:D.strikesToFire},(_,k)=>HEART(k<lives?'#E5484D':'#E5E7EB')).join('')}</span></span></div>
