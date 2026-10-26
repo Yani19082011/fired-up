@@ -377,6 +377,11 @@ const round2 = n => Math.round(n * 100) / 100;
 const round4 = n => Math.round(n * 10000) / 10000;
 function liqValue(p, px) { const bid = px * (1 - Math.max(SLIP, (px >= 1 ? 0.005 : 0.0005) / px)); return p.qty * bid - commission(p.qty, bid) - sellFees(p.qty, bid); }
 function equity(bot, prices) { return bot.cash + bot.positions.reduce((s, p) => s + liqValue(p, prices[p.sym] ?? p.entry), 0); }
+// известия на телефона: събират се по време на стъпката и се пращат след записа
+let PUSH = null; try { PUSH = require('./_push'); } catch (e) { PUSH = null; }
+function note(st, cat, title, body, bot) { (st.outbox = st.outbox || []).push({ cat, title, body, bot: bot || null }); if (st.outbox.length > 200) st.outbox = st.outbox.slice(-200); }
+const pctF = x => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(2).replace('.', ',') + '%';
+const sgnM = x => (x >= 0 ? '+' : '') + money(x);
 function feed(st, t, botId, kind, text) { st.feed.unshift({ t, b: botId, k: kind, x: text }); st.feed = st.feed.slice(0, 120); }
 const money = n => (n < 0 ? '−$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const qtyF = n => n.toLocaleString('bg-BG');
@@ -401,7 +406,8 @@ function closePos(st, bot, p, price, t, reason, limit = false) {
   if (!rec.worst || pct < rec.worst.pct) rec.worst = r1;
   bot.trades = bot.trades.slice(0, 40);
   bot.realized = round2(bot.realized + pnl);
-  const WHY = { tp: 'целта', sl: 'стопа', be: 'стопа на входа', trail: 'плъзгащия стоп', time: 'времето', rsi: 'RSI над 80', vwap: 'пада под VWAP', eod: 'края на деня', fired: 'уволнението' };
+  const WHY = { tp: 'целта', sl: 'стопа (ограничи загубата)', be: 'стопа на входа', trail: 'плъзгащия стоп (пази печалбата)', time: 'времето', rsi: 'акцията прегря (поскъпна твърде бързо)', vwap: 'падна под средната цена за деня', eod: 'края на деня', fired: 'уволнението' };
+  if (reason !== 'fired') note(st, 'sell', `${pnl > 0 ? '✅' : '❌'} ${bot.name} продаде ${p.sym} ${pctF(pct)}`, `${qtyF(p.qty)} акции по ${pxF(px)} · ${sgnM(pnl)} след таксите · ${WHY[reason] || reason}`, bot.id);
   feed(st, t, bot.id, pnl > 0 ? 'win' : 'loss', `${bot.name} продаде ${qtyF(p.qty)} ${p.sym} по ${pxF(px)} (${pct >= 0 ? '+' : '−'}${fmtP(Math.abs(pct).toFixed(1))}%, ${pnl >= 0 ? '+' : ''}${money(pnl)}) заради ${WHY[reason] || reason}.`);
   // статистика по стратегия (всички реални излизания)
   const k = bot.genome.trigger.t; st.stats = st.stats || {};
@@ -431,6 +437,7 @@ function fire(st, bot, t, prices, why = 'streak') {
   st.firedDayPnl = round2((st.firedDayPnl || 0) + (eq - (bot.dayStart ?? START_CASH))); // загубата/печалбата му днес остава в сметката на отбора
   st.bots = st.bots.filter(b => b !== bot);
   const nb = hire(st, t, [k]);
+  note(st, 'fired', `🔥 ${bot.name} е УВОЛНЕН`, `${FIRE_TXT[why]()} · ${sgnM(eq - START_CASH)} общо · на мястото му идва ${nb.name} (${nb.style})`, nb.id);
   feed(st, t, bot.id, 'fired', `${bot.name} е УВОЛНЕН ${FIRE_TXT[why]()} (${eq - START_CASH >= 0 ? '+' : ''}${money(eq - START_CASH)} общо).`);
   feed(st, t, nb.id, 'hired', `Нов трейдър: ${nb.name} (${nb.style}). ${nb.desc.buy}`);
 }
@@ -455,7 +462,7 @@ async function tick(nowMs = Date.now()) {
   let st = await loadState();
   if (!st) { st = { bots: [], fired: [], feed: [], day: null, universe: [], prices: {}, lastBar: 0, created: nowMs, daily: {} }; for (let i = 0; i < N_BOTS; i++) hire(st, nowMs); feed(st, nowMs, null, 'info', `Състезанието започва! ${N_BOTS} трейдъри, по $10 000 фалшиви пари, истински цени.`); }
   st.lastTick = nowMs; st.simMs = nowMs;
-  if (st.bots.length < N_BOTS) { const add = N_BOTS - st.bots.length; const names = []; for (let i = 0; i < add; i++) names.push(hire(st, nowMs).name); feed(st, nowMs, null, 'hired', `Отборът расте! Назначени са ${add} нови трейдъри: ${names.join(', ')}.`); }
+  if (st.bots.length < N_BOTS) { const add = N_BOTS - st.bots.length; const names = []; for (let i = 0; i < add; i++) names.push(hire(st, nowMs).name); note(st, 'fired', `🆕 Отборът расте: +${add} трейдъри`, names.join(', '), null); feed(st, nowMs, null, 'hired', `Отборът расте! Назначени са ${add} нови трейдъри: ${names.join(', ')}.`); }
   dedupe(st, nowMs);
   // еднократно: статистиката отпреди реалистичните сделки (без такси и спред) се нулира, за да са процентите истински
   if (st.statsV !== 2) {
@@ -548,6 +555,7 @@ async function tick(nowMs = Date.now()) {
               bot.cash -= qty * fill + fee;
               bot.positions.push({ sym: q.s, qty, entry: fill, t, peak: fill, stop, stop0: round4(stop), tp: round4(fill * (1 + g.tp / 100)), feeIn: round2(fee), sigT: q.t, limit: q.limit });
               st.dayTrades = (st.dayTrades || 0) + 1;
+              note(st, 'buy', `🟢 ${bot.name} купи ${q.s}`, `${qtyF(qty)} акции по ${pxF(fill)} · ${money(qty * fill)} · ${STYLE[g.trigger.t]}`, bot.id);
               feed(st, t, bot.id, 'buy', `${bot.name} купи ${qtyF(qty)} ${q.s} по ${pxF(fill)} (${money(qty * fill)} + такса ${money(fee)}).`);
             } else if (q.liq < 1 || qty < 1) feed(st, t, bot.id, 'info', `${bot.name} пропусна ${q.s} — твърде малко се търгува, за да влезе с реална сума.`);
           }
@@ -556,7 +564,7 @@ async function tick(nowMs = Date.now()) {
       // 2) излизане
       for (const p of [...bot.positions]) {
         const I = IND[p.sym]; const i = I && idx[p.sym].get(t);
-        if (isHalted(st, p.sym, t)) { if (!p.haltSeen) { p.haltSeen = t; feed(st, t, bot.id, 'info', `⏸ ${p.sym} е спряна от борсата (halt) — ${bot.name} не може да продаде, докато не я пуснат.`); } continue; }
+        if (isHalted(st, p.sym, t)) { if (!p.haltSeen) { p.haltSeen = t; note(st, 'sell', `⏸ ${p.sym} е спряна (halt)`, `${bot.name} не може да продаде, докато борсата не я пусне.`, bot.id); feed(st, t, bot.id, 'info', `⏸ ${p.sym} е спряна от борсата (halt) — ${bot.name} не може да продаде, докато не я пуснат.`); } continue; }
         if (p.haltSeen) { p.haltSeen = 0; feed(st, t, bot.id, 'info', `▶ ${p.sym} се търгува отново — ${bot.name} може да продава.`); }
         if (i == null) { if (t >= eodAt) closePos(st, bot, p, st.prices[p.sym] ?? p.entry, t, 'eod'); continue; }
         const o = I.o[i], hi = I.h[i], lo = I.l[i], c = I.c[i], pre = t < regStart;
@@ -628,10 +636,14 @@ async function tick(nowMs = Date.now()) {
       const teamDay = round2(st.bots.reduce((a, b) => a + equity(b, st.prices) - b.dayStart, 0) + (st.firedDayPnl || 0));
       st.dayHist = [...(st.dayHist || []).filter(x => x.d !== st.day), { d: st.day, pnl: teamDay }].slice(-120);
       const top = [...st.bots].sort((a, b) => (equity(b, st.prices) - b.dayStart) - (equity(a, st.prices) - a.dayStart))[0];
+      { const R = [...st.bots].map(b => ({ b, d: equity(b, st.prices) - b.dayStart })).sort((a, b) => b.d - a.d); const wr = st.dayClosed ? Math.round((st.dayWins || 0) / st.dayClosed * 100) : 0;
+        note(st, 'summary', `📊 Денят свърши: отборът ${sgnM(teamDay)}`, `${st.dayTrades || 0} сделки · ${st.dayWins || 0} от ${st.dayClosed || 0} на печалба (${wr}%) · уволнени ${st.firedToday || 0}` + (R[0] ? ` · най-добър: ${R[0].b.name} ${sgnM(R[0].d)}` : '') + (R.length > 1 ? ` · най-слаб: ${R[R.length - 1].b.name} ${sgnM(R[R.length - 1].d)}` : ''), null); }
       if (top) { const d = equity(top, st.prices) - top.dayStart; feed(st, end, top.id, 'info', `Денят свърши. Трейдър на деня: ${top.name} (${d >= 0 ? '+' : ''}${money(d)}).`); }
     }
   }
+  const out = st.outbox || []; st.outbox = [];
   await saveState(st);
+  if (out.length && PUSH) await PUSH.flush(out).catch(e => console.error('push flush', e.message));
   return st;
 }
 
