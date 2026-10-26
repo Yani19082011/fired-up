@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up · Деск</title>
-<meta name="fu-ver" content="40">
+<meta name="fu-ver" content="42">
 <meta name="theme-color" content="#F5F6F8">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -399,13 +399,13 @@ const ROLE={
   skeptic:'Работата му е да спори срещу ВСЯКА сделка. Търси причини да не купуваме: няма новина, разводняване, гоним влака, малко търговия, късно е… Казва КУПИ, ЧАКАЙ или ПРОПУСНИ. Без неговото „да“ пари не се движат.',
   chief:'Събира всички мнения, преценява колко е уверен (0–5) и решава. Купува сам, слага стоп и цел, мести стопа на входа при +1R и продава. Рискува най-много 1% от сметката на сделка.'};
 function team(d){
-  const S=d.stats,H=d.health||{};const ok=k=>H[k]?(H[k].ok?'<b class="up">✓ работи</b>':`<b class="down">✗ ${esc(H[k].err||'не отговаря')}</b>`):'<b class="mut">— още не е пробвано</b>';
+  const S=d.stats,H=d.health||{};const ok=k=>H[k]?(H[k].ok?`<span style="text-align:right"><b class="up">✓ работи</b>${H[k].note?`<small class="mut" style="display:block;font-size:11px;font-weight:600">${esc(H[k].note)}</small>`:''}</span>`:`<b class="down">✗ ${esc(H[k].err||'не отговаря')}</b>`):'<b class="mut">— още не е пробвано</b>';
   const st={scout:[['идеи',S.scout],['днес',S.ideasToday],['радар',d.scan?d.scan.radar:'—']],news:[['с новина',S.newsFound],['без новина',S.newsNone],['източник',d.finnhub?'Yahoo+Finnhub':'Yahoo']],
     sentiment:[['източник','StockTwits'],['състояние',H.sentiment?(H.sentiment.ok?'✓':'✗'):'—'],['резерва','новините']],chart:[['вход','лимит'],['цел','2× риска'],['стоп','≤ 8%']],
     skeptic:[['спря',S.skip],['вето',S.vetoHard],['прав',S.saved+S.missed?Math.round(S.saved/(S.saved+S.missed)*100)+'%':'—']],chief:[['купи',S.buy],['чакай',S.wait],['успех',S.winRate==null?'—':S.winRate+'%']]};
   $('#teamList').innerHTML=AGK.map(k=>`<div class="card agc">${''}<span class="hd">${av(k)}<span><b>${AG[k].n} · ${AG[k].bg}</b><small>${esc(d.agents&&d.agents[k]?d.agents[k].role:'')}</small></span></span><p>${ROLE[k]}</p><span class="kv">${st[k].map(([a,b])=>`<span><small>${a.toUpperCase()}</small><b>${esc(b)}</b></span>`).join('')}</span>${k==='skeptic'?`<p class="mut" style="font-size:12.5px">След всяко „пропусни“ следим акцията 60 минути: ${S.saved} пъти щеше да е загуба (спести ни пари), ${S.missed} пъти щеше да е печалба (сбърка). Приблизително, по минутните цени.</p>`:''}</div>`).join('')+
   `<div class="card"><b>Източници на данни</b><div class="health" style="margin-top:6px">
-    <div><span>Цени и радар (Yahoo)</span>${ok('scout')}</div><div><span>Групова заявка (Yahoo)</span>${ok('spark')}</div><div><span>Минутни графики</span>${ok('chart')}</div>
+    <div><span>Цени и радар (Yahoo)</span>${ok('scout')}</div><div><span>Групова заявка (Yahoo)</span>${ok('spark')}</div><div><span>Минутни графики (Yahoo)</span>${ok('chart')}</div><div><span>Крипто на живо (Coinbase)</span>${ok('coinbase')}</div>
     <div><span>Новини</span>${ok('news')}</div><div><span>StockTwits</span>${ok('sentiment')}</div>
     <div><span>AI (${d.ai||'няма ключ'})</span>${d.ai?ok('ai'):'<b class="mut">изключен</b>'}</div></div>
     ${d.ai?'':`<p class="mut" style="font-size:12.5px;margin:10px 0 0">Без AI ключ всичко работи по правила. С безплатен ключ от Groq или Google Gemini Скептикът и Шефът пишат истински аргументи на български. Ключът се слага във Vercel → Settings → Environment Variables като <b>GROQ_API_KEY</b> или <b>GEMINI_API_KEY</b>.</p>`}</div>
@@ -422,7 +422,7 @@ function team(d){
 /* ——— страница на идея ——— */
 function pushPage(id){const pg=$(id);pg.hidden=false;pg.scrollTop=0;document.body.style.overflow='hidden';pages.push(id);history.pushState({p:id},'')}
 function popPage(){const id=pages.pop();if(!id)return;$(id).hidden=true;if(id==='#pIdea'){ideaId=null;IDEA=null}if(!pages.length)document.body.style.overflow=''}
-async function loadIdea(id){try{const r=await fetch('/api/state?idea='+encodeURIComponent(id),{cache:'no-store'});const d=await r.json();if(d.idea&&ideaId===id){IDEA=d.idea;return true}}catch(e){}return false}
+async function loadIdea(id){try{const r=await fetch('/api/state?idea='+encodeURIComponent(id),{cache:'no-store'});const d=await r.json();if(ideaId!==id)return false;if(d.idea){IDEA=d.idea;return true}if(r.status===404){IDEA={missing:true};return true}}catch(e){}return false}
 function openIdea(id){ideaId=id;IDEA=null;cRange='near';pushPage('#pIdea');ideaPage(false);loadIdea(id).then(ok=>{if(ok)ideaPage(false)})}
 let ideaLoadAt=0;
 function step(k,body,t){return `<div class="step">${av(k)}<div class="bub" style="--c:${AG[k].c}"><span class="w"><span>${AG[k].n} · ${AG[k].bg}</span>${t?`<time class="mut" style="font-family:var(--mono);font-size:11px">${nyTime(t)}</time>`:''}</span>${body}</div></div>`}
@@ -430,6 +430,7 @@ function ideaPage(refresh){
   const pg=$('#pIdea');const brief=D&&D.ideas.find(i=>i.id===ideaId);
   if(refresh&&Date.now()-ideaLoadAt>9000){ideaLoadAt=Date.now();loadIdea(ideaId).then(ok=>{if(ok)ideaPage(false)});}
   const I=IDEA;const keep=pg.scrollTop;
+  if(I&&I.missing){pg.innerHTML=`<div class="wrap"><div class="ph"><button type="button" class="back" data-close aria-label="Назад">${BACK}</button><span class="t"><b>${esc(brief?brief.d:'Идея')}</b><span>старата идея е изтрита</span></span></div><div class="empty">Пазим дебата за последните идеи и за всички сделки. Тази идея е по-стара и вече я няма.</div></div>`;return}
   if(!I){pg.innerHTML=`<div class="wrap"><div class="ph"><button type="button" class="back" data-close aria-label="Назад">${BACK}</button><span class="t"><b>${esc(brief?brief.sym:'…')}</b><span>Зарежда дебата…</span></span></div></div>`;return}
   const ch=I.chief||{},sk=I.skeptic||{},v=VERD[ch.verdict]||['—','#6B7280'];
   const tr=I.trade,pos=I.pos;const st=I.status==='closed'&&tr?[pct1(tr.pct),col(tr.pct)]:STAT[I.status]||['—','#6B7280'];
@@ -522,7 +523,9 @@ addEventListener('popstate',()=>popPage());
 if(pushOK)navigator.serviceWorker.addEventListener('message',e=>{const u=e.data&&e.data.open;if(!u)return;const id=new URL(u,location.origin).searchParams.get('idea');if(id)openIdea(id)});
 pushRefresh().then(()=>{if(pushSub)pushSave().catch(()=>{})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#notif').hidden)$('#notif').hidden=true;else if(pages.length)history.back()}});
-setInterval(()=>{if(!lastFetch)return;const s=Math.round((Date.now()-lastFetch)/1000);$('#upd').textContent=`Обновено преди ${s} с`+(D&&D.scan?` · радар ${D.scan.radar} акции`:'')},1000);
+setInterval(()=>{if(!lastFetch||!D)return;const s=Math.round((Date.now()-lastFetch)/1000);let t=`Обновено преди ${s} с`;
+  if(D.dataT){const a=Math.max(0,Math.round((Date.now()-D.dataT)/1000));t+=` · цените са отпреди ${a<120?a+' с':Math.round(a/60)+' мин'}`}
+  if(D.src)t+=` · акции: ${D.src.stock}, крипто: ${D.src.crypto}`;$('#upd').textContent=t},1000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)load()});
 addEventListener('resize',()=>{if(D)render()});
 load();setInterval(()=>{if(!document.hidden)load()},10000);
