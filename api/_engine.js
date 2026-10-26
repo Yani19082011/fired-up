@@ -1,18 +1,18 @@
 // Fired Up — двигателят на състезанието.
-// 100 бота търгуват penny stocks, всеки с фалшиви $50 и своя стратегия — но като с истински пари: поръчка се изпълнява на следващата минута,
+// 100 бота търгуват penny stocks, всеки с фалшиви $2 000 и своя стратегия — но като с истински пари: поръчка се изпълнява на следващата минута,
 // плаща се спред и такси на брокера, не се купува повече, отколкото пазарът реално търгува. Уволнение по 3 правила.
 // Данни в реално време: Yahoo Finance (минутни свещи с обем, без ключ). Ако Yahoo откаже —
 // Alpaca IEX в реално време (нужни ALPACA_KEY_ID / ALPACA_SECRET_KEY, по желание).
 // Нужно във Vercel: свързана Upstash памет (KV_REST_API_URL / KV_REST_API_TOKEN).
 
-const START_CASH = Number(process.env.START_CASH || 50);
+const START_CASH = Number(process.env.START_CASH || 2000);   // по $2 000 — при цели акции закръглянето е под 0,5%, а сумата е малка спрямо обема
 const SLIP = 0.002;          // 0,2% приплъзване при покупка и при продажба (широк спред при penny stocks)
 const SLIP_PRE = 0.005;      // 0,5% в премаркета — спредовете тогава са много по-широки
 let REG_START = 0;           // кога е истинското отваряне днес (9:30 НЙ)
 const slipAt = t => (REG_START && t < REG_START ? SLIP_PRE : SLIP);
 // половината спред: поне 0,2% (0,5% в премаркета), но и поне половин цент — при $1–5 акции котировката е през $0,01
 function halfSpread(px, t) { const pre = REG_START && t < REG_START; return Math.max(pre ? SLIP_PRE : SLIP, (px >= 1 ? (pre ? 0.01 : 0.005) : (pre ? 0.001 : 0.0005)) / px); }
-// Брокер без комисиона (като Trading 212 / Alpaca) — при $50 сметка таксата на IBKR (мин. $1) би изяла печалбата.
+// Брокер без комисиона (като Trading 212 / Alpaca) — при малка сметка таксата на IBKR (мин. $1) изяжда печалбата.
 // Плащат се спредът и регулаторните такси на САЩ при продажба. BROKER=ibkr във Vercel връща таксите на Interactive Brokers.
 const IBKR = process.env.BROKER === 'ibkr';
 const COMM_SH = 0.005, COMM_MIN = IBKR ? 1 : 0, COMM_MAX = 0.01;
@@ -25,7 +25,7 @@ const N_BOTS = Number(process.env.N_BOTS || 100);
 const STRIKES_TO_FIRE = Number(process.env.STRIKES_TO_FIRE || 5);   // уволнение: 5 поредни загуби
 const DD_FIRE = Number(process.env.DD_FIRE || 0);                   // по желание: % спад от върха (0 = изключено)
 const LOSER_TRADES = Number(process.env.LOSER_TRADES || 0);         // по желание: на минус след толкова сделки (0 = изключено)
-const MIN_ORDER = Math.max(1, START_CASH * 0.05);                   // най-малка поръчка (при $50 → $2,50)
+const MIN_ORDER = Math.max(1, START_CASH * 0.05);                   // най-малка поръчка (при $2 000 → $100)
 const PRICE_MIN = 0.5, PRICE_MAX = 5;
 const UNIVERSE_N = Number(process.env.UNIVERSE_N || 24);
 const FALLBACK = ['SNDL','PLUG','BBAI','SOUN','GSAT','TELL','OPEN','SENS','CLOV','NIO','RIG','ACHR','TLRY','HIVE','BITF','CIFR','QS','LAZR','DNA','NKLA','FCEL','IQ','GRAB','SIRI'];
@@ -41,7 +41,8 @@ async function kv(cmd) {
   if (d.error) throw new Error('kv: ' + d.error);
   return d.result ?? null;
 }
-const STATE_KEY = process.env.STATE_KEY || 'arena:v3';   // ново състезание: 100 × $50 (старото остава в arena:v2)
+const sgnP = n => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(1).replace('.', ',') + '%';
+const STATE_KEY = process.env.STATE_KEY || 'arena:v4'; // v4 = 100 × $2 000 (старите състезания остават в arena:v3 и arena:v2)
 const zlib = require('zlib');
 // пази се компресирано — 100 трейдъри с история иначе изяждат безплатния трафик на Upstash
 async function loadState() { const s = await kv(['GET', STATE_KEY]); if (!s) return null; return JSON.parse(s.startsWith('z:') ? zlib.gunzipSync(Buffer.from(s.slice(2), 'base64')).toString() : s); }
@@ -655,8 +656,8 @@ async function tick(nowMs = Date.now(), pre = null) {
       const teamDay = round2(st.bots.reduce((a, b) => a + equity(b, st.prices) - b.dayStart, 0) + (st.firedDayPnl || 0));
       st.dayHist = [...(st.dayHist || []).filter(x => x.d !== st.day), { d: st.day, pnl: teamDay }].slice(-120);
       const top = [...st.bots].sort((a, b) => (equity(b, st.prices) - b.dayStart) - (equity(a, st.prices) - a.dayStart))[0];
-      { const R = [...st.bots].map(b => ({ b, d: equity(b, st.prices) - b.dayStart })).sort((a, b) => b.d - a.d); const wr = st.dayClosed ? Math.round((st.dayWins || 0) / st.dayClosed * 100) : 0;
-        note(st, 'summary', `📊 Денят свърши: отборът ${sgnM(teamDay)}`, `${st.dayTrades || 0} сделки · ${st.dayWins || 0} от ${st.dayClosed || 0} на печалба (${wr}%) · уволнени ${st.firedToday || 0}` + (R[0] ? ` · най-добър: ${R[0].b.name} ${sgnM(R[0].d)}` : '') + (R.length > 1 ? ` · най-слаб: ${R[R.length - 1].b.name} ${sgnM(R[R.length - 1].d)}` : ''), null); }
+      { const R = [...st.bots].map(b => ({ b, d: equity(b, st.prices) / b.dayStart - 1 })).sort((a, b) => b.d - a.d); const wr = st.dayClosed ? Math.round((st.dayWins || 0) / st.dayClosed * 100) : 0;
+        note(st, 'summary', `📊 Денят свърши: отборът ${sgnM(teamDay)}`, `${st.dayTrades || 0} сделки · ${st.dayWins || 0} от ${st.dayClosed || 0} на печалба (${wr}%) · уволнени ${st.firedToday || 0}` + (R[0] ? ` · най-добър: ${R[0].b.name} ${sgnP(R[0].d * 100)}` : '') + (R.length > 1 ? ` · най-слаб: ${R[R.length - 1].b.name} ${sgnP(R[R.length - 1].d * 100)}` : ''), null); }
       if (top) { const d = equity(top, st.prices) - top.dayStart; feed(st, end, top.id, 'info', `Денят свърши. Трейдър на деня: ${top.name} (${d >= 0 ? '+' : ''}${money(d)}).`); }
     }
   }
@@ -694,7 +695,7 @@ function view(st, nowMs = Date.now(), opts = {}) {
       trades: opts.full === b.id ? b.trades : undefined, last: b.trades[0] || null,
       todayN: b.trades.filter(t => t.out >= ((st.session && st.session.start) || 0)).length, todayW: b.trades.filter(t => t.out >= ((st.session && st.session.start) || 0) && t.pnl > 0).length, fees: round2(b.fees || 0), hold: b.genome.hold, maxPos: b.genome.maxPos,
     };
-  }).sort((a, b) => b.today - a.today || b.total - a.total);
+  }).sort((a, b) => b.todayPct - a.todayPct || b.total - a.total);
   return { dataT: st.dataT || null, srcLive: st.srcLive || 'yahoo', status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, ddFire: DD_FIRE, loserTrades: LOSER_TRADES, startCash: START_CASH, nBots: N_BOTS, ticker: st.ticker || [],
     stats: Object.entries(st.stats || {}).map(([k, x]) => ({ k, ...x, style: STYLE[k] || x.style, tech: TECH[k], winRate: x.trades ? Math.round(x.wins / x.trades * 100) : null, avgPct: x.trades ? round2(x.pctSum / x.trades) : null, avgMin: x.trades ? Math.round(x.minutes / x.trades) : null })).sort((a, b) => b.pnl - a.pnl),
     session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40).map(f => { const k = Object.keys(TECH).find(q => TECH[q] === f.style || STYLE[q] === f.style); const out = k ? { ...f, style: STYLE[k], strat: k } : { ...f }; if (f.genome) out.desc = describe(f.genome); delete out.genome; return out; }), firedToday: st.firedToday || 0, firedDayPnl: st.firedDayPnl || 0, teamHist: st.teamHist || [], feesAll: st.feesAll || 0, feesDay: st.feesDay || 0, dayClosed: st.dayClosed || 0, dayWins: st.dayWins || 0, dayHist: st.dayHist || [],
