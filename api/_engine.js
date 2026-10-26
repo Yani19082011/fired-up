@@ -315,18 +315,19 @@ function pickGenome(st, also = []) {
   let g; for (let i = 0; i < 50; i++) { g = newGenome([], R(pool)); if (!taken.has(gsig(g))) break; }
   return g;
 }
-const FIRST = ['Иван', 'Мария', 'Георги', 'Елена', 'Димитър', 'Йоана', 'Николай', 'Десислава', 'Петър', 'Виктория', 'Стоян', 'Габриела', 'Христо', 'Надя', 'Калин', 'Ралица', 'Борис', 'Цвети', 'Тодор', 'Мила', 'Васил', 'Яна', 'Ангел', 'Кремена', 'Симеон', 'Теди', 'Любо', 'Ваня', 'Мартин', 'Ники', 'Пламен', 'Сия', 'Румен', 'Лора', 'Владо', 'Ели', 'Генади', 'Зори', 'Кирил', 'Поли', 'Асен', 'Дара', 'Огнян', 'Вяра', 'Станко', 'Роси', 'Жоро', 'Мира', 'Красимир', 'Ани'];
+// готини имена на английски: име + прякор според стратегията (напр. „Nova Gap Hunter“)
+const FIRST = ['Max', 'Luna', 'Jax', 'Nova', 'Kai', 'Zoe', 'Rex', 'Ivy', 'Leo', 'Mia', 'Ace', 'Sky', 'Finn', 'Ruby', 'Cole', 'Jade', 'Axel', 'Nina', 'Theo', 'Lexi', 'Dash', 'Rio', 'Zane', 'Vera', 'Blake', 'Sasha', 'Ryder', 'Quinn', 'Milo', 'Kira', 'Cruz', 'Ella', 'Knox', 'Remy', 'Hugo', 'Skye', 'Nash', 'Duke', 'Roxy', 'Viper', 'Echo', 'Storm', 'Blaze', 'Ghost', 'Maverick', 'Raven', 'Phoenix', 'Diesel', 'Jet', 'Sage'];
 const NICK = {
-  orb: ['Пробива', 'Ранобудния', 'Отварача', 'Първата Минута'], donchian20: ['Месечния Връх', 'Рекордьора', 'Високия', 'Покорителя'], pdh_break: ['Таванолома', 'Вчерашния', 'Над Тавана', 'Пробойника'],
-  hod_break: ['Върхаря', 'Новия Връх', 'Катерача', 'Алпиниста'], bull_flag: ['Флагмана', 'Знаменосеца', 'Бичия Флаг', 'Почивката'], fib_bounce: ['Намалението', 'Отстъпката', 'Пазарлъка', 'Фибоначи'],
-  red_to_green: ['Зеления', 'Светофара', 'Минус-Плюс', 'Обратния'], gap_go: ['Сутрешния', 'Гапа', 'Новината', 'Ракетата'], vwap_bounce: ['Средния', 'Пода', 'Отскока', 'Балансьора'],
-  stoch_cross: ['Търпеливия', 'Изморения', 'Дъното', 'Обръщача'], ema_cross: ['Ускорителя', 'Турбото', 'Тренда', 'Газта'], rsi_bounce: ['Паниката', 'Отскачача', 'Спасителя', 'Хладнокръвния'],
-  macd_cross: ['Спирачката', 'Края на Спада', 'Обрата', 'Вълната'], bb_bounce: ['Коридора', 'Ластика', 'Пружината', 'Връщача'], vol_spike: ['Шумния', 'Интереса', 'Тълпата', 'Вълнолома'],
+  orb: ['Breakout', 'Opening Bell', 'First Strike', 'Early Bird'], donchian20: ['Monthly High', 'Record Breaker', 'Peak Hunter', 'New Highs'], pdh_break: ['Ceiling Smasher', 'Roofbreaker', 'Overpass', 'Sky Ladder'],
+  hod_break: ['High Climber', 'Summit', 'Day High', 'Ladder'], bull_flag: ['Flagpole', 'Bull Flag', 'Second Wind', 'Pause & Go'], fib_bounce: ['Dip Buyer', 'Discount', 'Bargain', 'Golden Ratio'],
+  red_to_green: ['Red-to-Green', 'Flipper', 'Green Light', 'Turnaround'], gap_go: ['Gap Hunter', 'Morning Rocket', 'Headline', 'Gap & Go'], vwap_bounce: ['VWAP Bouncer', 'Floor Walker', 'Rebound', 'Average Joe'],
+  stoch_cross: ['Patient Hunter', 'Bottom Picker', 'Reversal', 'Exhaustion'], ema_cross: ['Momentum', 'Turbo', 'Trend Rider', 'Accelerator'], rsi_bounce: ['Panic Buyer', 'Oversold', 'Comeback', 'Cool Head'],
+  macd_cross: ['Turning Point', 'Brakeman', 'Wave Rider', 'Pivot'], bb_bounce: ['Rubber Band', 'Snapback', 'Spring', 'Band Bouncer'], vol_spike: ['Volume Spike', 'Crowd Surfer', 'Hype Rider', 'Loud Money'],
 };
 function genName(st, k) {
   const used = new Set([...st.bots.map(b => b.name), ...(st.fired || []).slice(0, 60).map(f => f.name)]);
   for (let i = 0; i < 80; i++) { const n = `${R(FIRST)} ${R(NICK[k] || ['Трейдъра'])}`; if (!used.has(n)) return n; }
-  return `Трейдър №${st.nameSeq}`;
+  return `Trader #${st.nameSeq}`;
 }
 function genColor(n) { // различен цвят за всеки (златен ъгъл), като hex
   const h = (n * 137.508) % 360, s = 0.68, l = 0.66, a = s * Math.min(l, 1 - l), f = k => { const x = (k + h / 30) % 12; return Math.round(255 * (l - a * Math.max(-1, Math.min(x - 3, 9 - x, 1)))).toString(16).padStart(2, '0'); };
@@ -479,6 +480,7 @@ async function tick(nowMs = Date.now(), pre = null) {
   st.lastTick = nowMs; st.simMs = nowMs;
   if (st.bots.length < N_BOTS) { const add = N_BOTS - st.bots.length; const names = []; for (let i = 0; i < add; i++) names.push(hire(st, nowMs).name); note(st, 'fired', `🆕 Отборът расте: +${add} трейдъри`, names.join(', '), null); feed(st, nowMs, null, 'hired', `Отборът расте! Назначени са ${add} нови трейдъри: ${names.join(', ')}.`); }
   dedupe(st, nowMs);
+  if (!st.enNames) { st.enNames = 1; for (const b of st.bots) if (/[А-Яа-я]/.test(b.name)) { const old = b.name; b.name = '·'; b.name = genName(st, b.genome.trigger.t); feed(st, nowMs, b.id, 'info', `${old} вече е ${b.name}.`); } }
   // еднократно: статистиката отпреди реалистичните сделки (без такси и спред) се нулира, за да са процентите истински
   if (st.statsV !== 2) {
     st.statsV = 2;
