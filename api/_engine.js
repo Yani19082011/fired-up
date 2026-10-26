@@ -27,7 +27,19 @@ const DD_FIRE = Number(process.env.DD_FIRE || 0);                   // по же
 const LOSER_TRADES = Number(process.env.LOSER_TRADES || 0);         // по желание: на минус след толкова сделки (0 = изключено)
 const MIN_ORDER = Math.max(1, START_CASH * 0.05);                   // най-малка поръчка (при $2 000 → $100)
 const PRICE_MIN = 0.5, PRICE_MAX = 5;
-const UNIVERSE_N = Number(process.env.UNIVERSE_N || 24);
+const UNIVERSE_N = Number(process.env.UNIVERSE_N || 24);    // резерва: толкова акции, ако груповата заявка не работи
+const RADAR_N = Number(process.env.RADAR_N || 120);         // радар: толкова акции се сканират всяка минута (с групови заявки)
+const FOCUS_N = Number(process.env.FOCUS_N || 40);          // общо толкова акции на минута (държаните + най-живите от всяка територия) се гледат с пълни минутни свещи
+// територии: всеки трейдър ловува само в своята част от пазара
+const ZONES = {
+  cheap: { name: 'Под $1', txt: 'само акции под $1' },
+  mid: { name: '$1–3', txt: 'само акции между $1 и $3' },
+  upper: { name: '$3–5', txt: 'само акции между $3 и $5' },
+  gainers: { name: 'Най-поскъпналите', txt: 'само акции, поскъпнали с над 15% днес' },
+  active: { name: 'Най-търгуваните', txt: 'само 30-те най-търгувани акции на деня' },
+  gappers: { name: 'Сутрешен скок', txt: 'само акции, започнали деня с над 8% над вчерашната цена' },
+};
+const ZONE_KEYS = Object.keys(ZONES);
 const FALLBACK = ['SNDL','PLUG','BBAI','SOUN','GSAT','TELL','OPEN','SENS','CLOV','NIO','RIG','ACHR','TLRY','HIVE','BITF','CIFR','QS','LAZR','DNA','NKLA','FCEL','IQ','GRAB','SIRI'];
 const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36', Accept: 'application/json' };
 
@@ -125,6 +137,79 @@ async function liveQuotes(st, syms, nowMs) {
   const res = await Promise.allSettled(syms.slice(0, 25).map(s => fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(s)}&token=${FINNHUB}`).then(r => r.ok ? r.json() : null)));
   res.forEach((r, k) => { const q = r.status === 'fulfilled' && r.value; if (q && q.c > 0 && q.t) st.live[syms[k]] = { px: q.c, t: q.t * 1000 }; });
 }
+// групова заявка: минутните цени (само затваряния) на до 20 акции наведнъж
+function parseSpark(d) {
+  const out = {};
+  const arr = d && d.spark && d.spark.result;
+  if (Array.isArray(arr)) for (const r of arr) { const res = r.response && r.response[0]; if (!res) continue; const q = res.indicators && res.indicators.quote && res.indicators.quote[0]; out[r.symbol] = { t: (res.timestamp || []).map(x => x * 1000), c: (q && q.close) || [], pdc: res.meta && (res.meta.chartPreviousClose ?? res.meta.previousClose) }; }
+  else if (d && typeof d === 'object') for (const [k, v] of Object.entries(d)) if (v && Array.isArray(v.close)) out[k] = { t: (v.timestamp || []).map(x => x * 1000), c: v.close, pdc: v.chartPreviousClose ?? v.previousClose };
+  return out;
+}
+async function ySpark(syms) {
+  const ch = []; for (let i = 0; i < syms.length; i += 20) ch.push(syms.slice(i, i + 20));
+  const res = await Promise.allSettled(ch.map(c => yget(`/v8/finance/spark?symbols=${c.map(encodeURIComponent).join(',')}&range=1d&interval=1m&includePrePost=true`)));
+  const out = {}; for (const r of res) if (r.status === 'fulfilled') Object.assign(out, parseSpark(r.value));
+  return out;
+}
+// радарът: до 120 акции от няколко скенера на Yahoo (обновява се на 20 минути)
+async function pickRadar() {
+  const meta = new Map();
+  const res = await Promise.allSettled(['small_cap_gainers', 'day_gainers', 'most_actives', 'aggressive_small_caps'].map(id => yScreen(id)));
+  for (const r of res) if (r.status === 'fulfilled') for (const q of r.value) {
+    if (!okSym(q.sym) || !(q.price >= PRICE_MIN && q.price <= PRICE_MAX) || !(q.vol > 200000)) continue;
+    if (OTC.has(q.exch) || (q.delay != null && q.delay > 0) || (q.type && q.type !== 'EQUITY')) continue;
+    const m = meta.get(q.sym) || { s: q.sym, n: 0 }; m.n++; m.px = q.price; m.chg = q.chg || 0; m.vol = Math.max(m.vol || 0, q.vol || 0); meta.set(q.sym, m);
+  }
+  const list = [...meta.values()].sort((a, b) => b.vol - a.vol); list.forEach((m, k) => { m.vr = k + 1; });
+  return list.sort((a, b) => (b.n * 3 + Math.min(5, b.chg / 10)) - (a.n * 3 + Math.min(5, a.chg / 10))).slice(0, RADAR_N);
+}
+// попада ли акцията в територията (по последните данни)
+function zoneHit(z, m) {
+  if (!z || !m) return !z;
+  if (z === 'cheap') return m.px < 1;
+  if (z === 'mid') return m.px >= 1 && m.px < 3;
+  if (z === 'upper') return m.px >= 3;
+  if (z === 'gainers') return m.chg >= 15;
+  if (z === 'active') return (m.vr || 999) <= 30;
+  if (z === 'gappers') return (m.gap ?? m.chg) >= 8;
+  return true;
+}
+// същото, но в момента на сигнала — по минутните свещи
+function inZone(z, I, i, m) {
+  if (!z) return true;
+  const px = I.c[i], pdc = I.ctx && I.ctx.pdc;
+  if (z === 'cheap') return px < 1;
+  if (z === 'mid') return px >= 1 && px < 3;
+  if (z === 'upper') return px >= 3;
+  if (z === 'gainers') return pdc ? px / pdc - 1 >= 0.15 : false;
+  if (z === 'gappers') { const ri = I.ctx && I.ctx.regIdx; const k = ri != null && ri <= i ? ri : 0; return pdc ? I.o[k] / pdc - 1 >= 0.08 : false; }
+  if (z === 'active') return !!m && (m.vr || 999) <= 30;
+  return true;
+}
+// всяка минута: групова заявка за целия радар → кои акции „живеят“ сега → най-живите от всяка територия се гледат отблизо
+async function pickFocus(st, nowMs, start) {
+  const radar = st.radar || []; const M = {}; for (const m of radar) M[m.s] = { ...m };
+  let live = {}; try { live = await ySpark(radar.map(m => m.s)); } catch (e) { live = {}; }
+  let liveN = 0;
+  for (const [s, d] of Object.entries(live)) {
+    const m = M[s]; if (!m) continue;
+    const pts = []; for (let k = 0; k < d.t.length; k++) if (d.c[k] != null && d.t[k] >= start - 60000) pts.push([d.t[k], d.c[k]]);
+    if (!pts.length) continue; liveN++;
+    const last = pts[pts.length - 1][1], back = pts[Math.max(0, pts.length - 6)][1], pdc = d.pdc || (m.px / (1 + (m.chg || 0) / 100));
+    m.px = last; m.chg5 = back ? (last / back - 1) * 100 : 0; if (pdc) { m.chg = (last / pdc - 1) * 100; m.gap = (pts[0][1] / pdc - 1) * 100; }
+  }
+  for (const m of Object.values(M)) m.hot = Math.abs(m.chg5 || 0) * 3 + Math.abs(m.chg || 0) / 5 + Math.min(3, (m.vol || 0) / 2e7);
+  const keep = [...new Set([...st.bots.flatMap(b => b.positions.map(p => p.sym)), ...st.bots.filter(b => b.pending).map(b => b.pending.s)])];
+  const per = Math.max(3, Math.ceil(FOCUS_N / ZONE_KEYS.length));
+  const picks = ZONE_KEYS.map(z => Object.values(M).filter(m => zoneHit(z, m)).sort((a, b) => b.hot - a.hot).slice(0, per).map(m => m.s));
+  // общо до FOCUS_N акции на минута (заедно с държаните) — за да не ни блокира Yahoo; поне по 2 на територия
+  const cap = Math.max(FOCUS_N, keep.length + 2 * ZONE_KEYS.length);
+  const focus = [...keep]; for (let k = 0; k < per; k++) for (const p of picks) if (p[k] && !focus.includes(p[k]) && focus.length < cap) focus.push(p[k]);
+  for (const m of Object.values(M).sort((a, b) => b.hot - a.hot)) { if (focus.length >= cap) break; if (!focus.includes(m.s)) focus.push(m.s); }
+  st.radarMeta = Object.fromEntries(Object.values(M).map(m => [m.s, { px: round4(m.px || 0), chg: round2(m.chg || 0), vr: m.vr, gap: m.gap != null ? round2(m.gap) : undefined }]));
+  st.scan = { radar: radar.length, live: liveN, focus: focus.length, mode: liveN >= radar.length / 3 ? 'spark' : 'screener', t: nowMs };
+  return focus;
+}
 async function pickUniverse() {
   const score = new Map();
   for (const [id, w] of [['small_cap_gainers', 3], ['day_gainers', 2], ['most_actives', 2]]) {
@@ -211,6 +296,7 @@ function newGenome(avoid = [], force = null) {
     trail: R([0, 0, 2, 3, 5]), be: R([0, 0, 2, 3]), hold: R([20, 30, 60, 90, 180]),
     rsiExit: Math.random() < 0.25, vwapExit: Math.random() < 0.25,
     size: R([0.25, 0.5, 0.5, 1]), maxPos: R([1, 1, 2]),
+    zone: R(ZONE_KEYS),
   };
 }
 function sig(g, I, i) {
@@ -285,7 +371,7 @@ function describe(g) {
     day_gainer: `акцията вече е нагоре с поне ${F.g}% днес`, rvol: `днес се търгува ${fmtP(F.k)} пъти повече от обикновено`,
     vol_confirm: `в тази минута се търгува поне ${fmtP(F.k)} пъти повече от обикновено`, green_streak: `последните ${F.k} минути цената е само нагоре`,
   }[F.t]));
-  const buy = `Купува, когато ${trig}` + (filt.length ? `, но само ако ${filt.join(' и ')}` : '') + '.';
+  const buy = (g.zone ? `Ловува ${ZONES[g.zone].txt}. ` : '') + `Купува, когато ${trig}` + (filt.length ? `, но само ако ${filt.join(' и ')}` : '') + '.';
   const stop = g.atr ? `, ако падне повече от обичайното (${fmtP(g.atr)} пъти колкото акцията мърда средно за минута)` : ` при −${g.sl}%`;
   const sell = `С печалба продава при +${g.tp}%. Със загуба продава${stop}.` +
     (g.trail ? ` Ако е на печалба и цената се върне с ${g.trail}% от най-високото, продава, за да запази печалбата.` : '') +
@@ -306,14 +392,16 @@ const NAMES = {
 };
 const ALT = ['Бай Ганьо', 'Акулата', 'Вълчо', 'Професора', 'Лудата Лили', 'Баба Пена', 'Кирчо Котангенса', 'Ники Никела', 'Сладкия Стоп', 'Митко Мечката', 'Буля Бичка', 'Цецо Свещта', 'Жоро Ракетата', 'Пенчо Пени'];
 const COLORS = ['#F2B544', '#5BC0EB', '#E86A92', '#7BD389', '#B794F6', '#FF8A5B', '#4FD1C5', '#F6E05E', '#90CDF4', '#FBB6CE'];
-const gsig = g => JSON.stringify([g.trigger, g.filters.map(f => JSON.stringify(f)).sort(), g.tp, g.sl, g.atr, g.trail, g.be, g.hold, g.rsiExit, g.vwapExit, g.size, g.maxPos]);
+const gsig = g => JSON.stringify([g.zone, g.trigger, g.filters.map(f => JSON.stringify(f)).sort(), g.tp, g.sl, g.atr, g.trail, g.be, g.hold, g.rsiExit, g.vwapExit, g.size, g.maxPos]);
 const KINDS = [...new Set(TRIGGER_POOL)];
 // всеки има СВОЯ стратегия (няма двама с напълно еднакви правила); видовете са разпределени поравно
 function pickGenome(st, also = []) {
   const cnt = Object.fromEntries(KINDS.map(k => [k, 0])); for (const b of st.bots) cnt[b.genome.trigger.t] = (cnt[b.genome.trigger.t] || 0) + 1;
   const min = Math.min(...KINDS.map(k => cnt[k])); let pool = KINDS.filter(k => cnt[k] === min && !also.includes(k)); if (!pool.length) pool = KINDS.filter(k => cnt[k] === min);
   const taken = new Set(st.bots.map(b => gsig(b.genome)));
-  let g; for (let i = 0; i < 50; i++) { g = newGenome([], R(pool)); if (!taken.has(gsig(g))) break; }
+  const zc = Object.fromEntries(ZONE_KEYS.map(z => [z, 0])); for (const b of st.bots) if (b.genome.zone) zc[b.genome.zone]++;
+  const zmin = Math.min(...ZONE_KEYS.map(z => zc[z])); const zpool = ZONE_KEYS.filter(z => zc[z] === zmin);
+  let g; for (let i = 0; i < 50; i++) { g = newGenome([], R(pool)); g.zone = R(zpool); if (!taken.has(gsig(g))) break; }
   return g;
 }
 // готини имена на английски: име + прякор според стратегията (напр. „Nova Gap Hunter“)
@@ -481,6 +569,7 @@ async function tick(nowMs = Date.now(), pre = null) {
   st.lastTick = nowMs; st.simMs = nowMs;
   if (st.bots.length < N_BOTS) { const add = N_BOTS - st.bots.length; const names = []; for (let i = 0; i < add; i++) names.push(hire(st, nowMs).name); note(st, 'fired', `🆕 Отборът расте: +${add} трейдъри`, names.join(', '), null); feed(st, nowMs, null, 'hired', `Отборът расте! Назначени са ${add} нови трейдъри: ${names.join(', ')}.`); }
   dedupe(st, nowMs);
+  if (st.bots.some(b => !b.genome.zone)) { st.bots.forEach((b, k) => { if (!b.genome.zone) { b.genome.zone = ZONE_KEYS[k % ZONE_KEYS.length]; b.desc = describe(b.genome); } }); }
   if (!st.enNames) { st.enNames = 1; for (const b of st.bots) if (/[А-Яа-я]/.test(b.name)) { const old = b.name; b.name = '·'; b.name = genName(st, b.genome.trigger.t); feed(st, nowMs, b.id, 'info', `${old} вече е ${b.name}.`); } }
   // еднократно: статистиката отпреди реалистичните сделки (без такси и спред) се нулира, за да са процентите истински
   if (st.statsV !== 2) {
@@ -503,7 +592,7 @@ async function tick(nowMs = Date.now(), pre = null) {
       for (const off of [4, 5]) { const s = Date.parse(`${et.date}T09:30:00Z`) + off * 3600e3; if (etParts(s).min === 570) { session = { start: s - 330 * 60000, regStart: s, end: s + 390 * 60000, guess: true }; break; } }
     }
     if (st.day !== et.date) {
-      st.day = et.date; st.universe = []; st.lastBar = 0; st.firedToday = 0; st.firedDayPnl = 0; st.dayTrades = 0; st.feesDay = 0; st.dayClosed = 0; st.dayWins = 0; st.daily = {}; st.dayDone = null;
+      st.day = et.date; st.universe = []; st.radar = []; st.radarMeta = {}; st.lastBar = 0; st.firedToday = 0; st.firedDayPnl = 0; st.dayTrades = 0; st.feesDay = 0; st.dayClosed = 0; st.dayWins = 0; st.daily = {}; st.dayDone = null;
       for (const b of st.bots) { b.pending = null; b.dayStart = round2(equity(b, st.prices)); }
       st.histDue = 1;
     }
@@ -516,15 +605,15 @@ async function tick(nowMs = Date.now(), pre = null) {
   if (st.dayDone === st.day) { st.status = 'closed'; await saveState(st); return st; }
   st.status = nowMs < regStart ? 'premarket' : 'open';
 
-  const reopenPick = st.universeAt && st.universeAt < regStart && nowMs >= regStart + 5 * 60000;
-  if (!st.universe.length || reopenPick || (st.universeAt && nowMs - st.universeAt > 45 * 60000 && nowMs < end - 60 * 60000 && nowMs > regStart)) {
-    const u = await pickUniverse();
-    const held = st.bots.flatMap(b => b.positions.map(p => p.sym));
-    const before = new Set(st.universe);
-    st.universe = [...new Set([...held, ...u])].slice(0, UNIVERSE_N + held.length); st.universeAt = nowMs;
-    const added = st.universe.filter(s => !before.has(s));
-    if (added.length) feed(st, nowMs, null, 'info', `${before.size ? (reopenPick ? 'След отварянето — нови акции в радара' : 'Нови акции в радара') : (nowMs < regStart ? 'Премаркет! Днешните акции' : 'Днешните акции')}: ${added.slice(0, 12).join(', ')}${added.length > 12 ? '…' : ''}`);
+  const reopenPick = st.radarAt && st.radarAt < regStart && nowMs >= regStart + 5 * 60000;
+  if (!st.radar || !st.radar.length || reopenPick || (st.radarAt && nowMs - st.radarAt > 20 * 60000 && nowMs < end - 30 * 60000)) {
+    const before = new Set((st.radar || []).map(m => m.s));
+    try { const r = await pickRadar(); if (r.length >= 6) { st.radar = r; st.radarAt = nowMs; } } catch (e) { console.error('radar', e.message); }
+    if (!st.radar || !st.radar.length) { st.radar = (await pickUniverse()).map((s2, k) => ({ s: s2, n: 1, px: 0, chg: 0, vol: 0, vr: k + 1 })); st.radarAt = nowMs; }
+    const added = st.radar.map(m => m.s).filter(x => !before.has(x));
+    if (added.length) feed(st, nowMs, null, 'info', before.size ? `Радарът се обнови: ${st.radar.length} акции (${added.length} нови).` : `${nowMs < regStart ? 'Премаркет! ' : ''}Радарът сканира ${st.radar.length} акции — всеки трейдър ловува в своята територия.`);
   }
+  st.universe = await pickFocus(st, nowMs, start);
   // дневни данни (20-дневен връх, вчерашен връх/затваряне, среден дневен обем) — веднъж на ден за акция
   st.daily = st.daily || {};
   const need = st.universe.filter(s => !st.daily[s]);
@@ -613,6 +702,7 @@ async function tick(nowMs = Date.now(), pre = null) {
         if (bot.positions.some(p => p.sym === s) || isHalted(st, s, t)) continue;
         const I = IND[s]; const i = idx[s].get(t); if (i == null) continue;
         const px = I.c[i]; if (px < PRICE_MIN * 0.8 || px > PRICE_MAX * 1.5) continue;
+        if (!inZone(g.zone, I, i, st.radarMeta && st.radarMeta[s])) continue;
         if (!sig(g, I, i)) continue;
         const score = I.v[i] / (I.avgV[i - 1] || 1);
         if (!best || score > best.score) best = { s, px, score, atr: I.atr[i], liq: LIQ_SHARE * Math.max(I.avgV[i] || 0, 1) };
@@ -693,10 +783,10 @@ function view(st, nowMs = Date.now(), opts = {}) {
         return { sym: p.sym, qty: p.qty, entry: p.entry, now, pnl, pct: round2(pnl / (p.entry * p.qty) * 100), t: p.t, stop: round4(Math.max(p.stop, trP)), tp: p.tp || round4(p.entry * (1 + g.tp / 100)), exiting: p.exitAt || null, halted: isHalted(st, p.sym, nowMs) ? (HALT_TXT[(st.halts[p.sym] || {}).reason] || 'спряна от борсата') : null, holdUntil: p.t + g.hold * 60000, sigT: p.sigT || null, limit: p.limit || null, feeIn: p.feeIn || 0 }; }),
       pending: b.pending ? { s: b.pending.s, limit: b.pending.limit, t: b.pending.t } : null,
       trades: opts.full === b.id ? b.trades : undefined, last: b.trades[0] || null,
-      todayN: b.trades.filter(t => t.out >= ((st.session && st.session.start) || 0)).length, todayW: b.trades.filter(t => t.out >= ((st.session && st.session.start) || 0) && t.pnl > 0).length, fees: round2(b.fees || 0), hold: b.genome.hold, maxPos: b.genome.maxPos,
+      todayN: b.trades.filter(t => t.out >= ((st.session && st.session.start) || 0)).length, todayW: b.trades.filter(t => t.out >= ((st.session && st.session.start) || 0) && t.pnl > 0).length, fees: round2(b.fees || 0), hold: b.genome.hold, maxPos: b.genome.maxPos, zone: b.genome.zone ? ZONES[b.genome.zone].name : null,
     };
   }).sort((a, b) => b.todayPct - a.todayPct || b.total - a.total);
-  return { dataT: st.dataT || null, srcLive: st.srcLive || 'yahoo', status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, ddFire: DD_FIRE, loserTrades: LOSER_TRADES, startCash: START_CASH, nBots: N_BOTS, ticker: st.ticker || [],
+  return { scan: st.scan || null, zones: Object.fromEntries(ZONE_KEYS.map(z => [ZONES[z].name, st.bots.filter(b => b.genome.zone === z).length])), dataT: st.dataT || null, srcLive: st.srcLive || 'yahoo', status: st.status, day: st.day, simMs: st.simMs, lastTick: st.lastTick, lastBar: st.lastBar, src: st.src, strikesToFire: STRIKES_TO_FIRE, ddFire: DD_FIRE, loserTrades: LOSER_TRADES, startCash: START_CASH, nBots: N_BOTS, ticker: st.ticker || [],
     stats: Object.entries(st.stats || {}).map(([k, x]) => ({ k, ...x, style: STYLE[k] || x.style, tech: TECH[k], winRate: x.trades ? Math.round(x.wins / x.trades * 100) : null, avgPct: x.trades ? round2(x.pctSum / x.trades) : null, avgMin: x.trades ? Math.round(x.minutes / x.trades) : null })).sort((a, b) => b.pnl - a.pnl),
     session: st.session, universe: st.universe, bots, feed: st.feed.slice(0, 60), fired: st.fired.slice(0, 40).map(f => { const k = Object.keys(TECH).find(q => TECH[q] === f.style || STYLE[q] === f.style); const out = k ? { ...f, style: STYLE[k], strat: k } : { ...f }; if (f.genome) out.desc = describe(f.genome); delete out.genome; return out; }), firedToday: st.firedToday || 0, firedDayPnl: st.firedDayPnl || 0, teamHist: st.teamHist || [], feesAll: st.feesAll || 0, feesDay: st.feesDay || 0, dayClosed: st.dayClosed || 0, dayWins: st.dayWins || 0, dayHist: st.dayHist || [],
     records: (() => { const R = { ...(st.records || {}) }; const ss = st.session && st.session.start || 0;
