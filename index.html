@@ -4,30 +4,31 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up</title>
-<meta name="fu-ver" content="28">
-<meta name="theme-color" content="#0D0B1A">
+<meta name="fu-ver" content="30">
+<meta name="theme-color" content="#F5F6F8">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
 <link rel="icon" href="/icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Fired Up">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800;900&family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap">
 <style>
-/* Дизайн В: портфейл като в брокерско приложение + смелата „арена“ (лайм/циан/розово на тъмно индиго). */
+/* Дизайн 2 „Светъл и чист“: бял фон, бели карти със сянка, зелено за печалба и червено за загуба (Manrope). */
 :root{
   --pwa-offset:92px;
-  --bg:#0D0B1A; --surface:#15122A; --raise:#1A1730; --line:#2C2748; --line2:#221E38; --ink:#F4F2FF; --muted:#A39DC2; --dim:#4B4570;
-  --accent:#D4FF3A; --accent-ink:#0D0B1A; --up:#D4FF3A; --down:#FF3D8B; --cyan:#3DD9FF; --gold:#FFD23F; --silver:#D9DDE8; --bronze:#E8955A;
-  --display:"Unbounded","Arial Black",system-ui,sans-serif; --body:"Onest","Segoe UI",system-ui,-apple-system,sans-serif; --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
-  color-scheme:dark;
+  --bg:#F5F6F8; --surface:#FFFFFF; --raise:#F0F1F4; --line:#E5E7EB; --line2:#EEF0F3; --ink:#0E1116; --muted:#6B7280; --dim:#9CA3AF;
+  --accent:#0E1116; --accent-ink:#FFFFFF; --up:#00A35C; --down:#E5484D; --cyan:#2F5BEA; --gold:#D99A00; --silver:#8A93A6; --bronze:#D9772B;
+  --display:"Manrope",system-ui,-apple-system,sans-serif; --body:"Manrope","Segoe UI",system-ui,-apple-system,sans-serif; --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 4px 14px rgba(16,24,40,.05);
+  color-scheme:light;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;min-height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased;overflow-x:hidden;padding-top:env(safe-area-inset-top,0px)}
-body::before{content:"";position:fixed;left:-140px;top:-160px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle,rgba(212,255,58,.12),rgba(13,11,26,0) 65%);pointer-events:none;z-index:-1}
+body::before{content:"";position:fixed;left:-140px;top:-160px;width:460px;height:460px;border-radius:50%;background:radial-gradient(circle,rgba(0,163,92,.12),rgba(245,246,248,0) 65%);pointer-events:none;z-index:-1}
 [hidden]{display:none!important}
 button{font:inherit;cursor:pointer;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -36,7 +37,7 @@ button{font:inherit;cursor:pointer;color:inherit}
 .d{font-family:var(--display);font-weight:800}
 .num{font-variant-numeric:tabular-nums}
 /* горна лента */
-header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:rgba(13,11,26,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:rgba(245,246,248,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
 header.top .wrap{display:flex;align-items:center;gap:10px;padding-block:10px 8px}
 .logo{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:900;font-style:italic;font-size:15px}
 .logo svg{width:24px;height:24px;transform-origin:50% 90%;animation:flick 1.5s ease-in-out infinite}
@@ -49,7 +50,7 @@ header.top .wrap{display:flex;align-items:center;gap:10px;padding-block:10px 8px
 .icb{position:relative;width:44px;height:44px;border:0;border-radius:14px;background:var(--raise);display:grid;place-items:center}
 .icb svg{width:20px;height:20px}
 .icb .n{position:absolute;top:5px;right:5px;min-width:17px;height:17px;border-radius:9px;background:var(--down);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;padding:0 4px}
-.tape{overflow:hidden;height:30px;position:relative;background:#08070F;border-block:1px solid #1F1B33}
+.tape{overflow:hidden;height:30px;position:relative;background:#FFFFFF;border-block:1px solid #E5E7EB}
 .tape .run{display:flex;gap:22px;white-space:nowrap;position:absolute;left:0;top:0;height:30px;align-items:center;font-family:var(--mono);font-size:11.5px;font-weight:700;animation:tape linear infinite;will-change:transform}
 @keyframes tape{to{transform:translateX(-50%)}}
 main .wrap{display:flex;flex-direction:column;padding-block:14px calc(112px + env(safe-area-inset-bottom,0px))}
@@ -70,7 +71,7 @@ main .wrap{display:flex;flex-direction:column;padding-block:14px calc(112px + en
 .tfs button{flex:1;height:36px;border:0;border-radius:10px;font-family:var(--display);font-size:11px;font-weight:800;background:var(--raise);color:var(--muted)}
 .tfs button[aria-pressed="true"]{background:var(--accent);color:var(--bg)}
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px}
-.tile{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile{background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:18px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .tile .k{font-size:10.5px;font-weight:800;letter-spacing:.08em;color:var(--muted)}
 .tile .v{font-family:var(--display);font-weight:800;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile .v small{font-size:12px}
@@ -78,7 +79,7 @@ main .wrap{display:flex;flex-direction:column;padding-block:14px calc(112px + en
 .h b{font-family:var(--display);font-weight:800;font-size:14px}
 .h a,.h button.lnk{font-size:12.5px;font-weight:700;color:var(--accent);text-decoration:none;background:none;border:0;padding:0}
 .h span{font-size:12px;color:var(--muted)}
-.box{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:4px 12px}
+.box{background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:20px;padding:4px 12px}
 .ev{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line2)}
 .ev:last-child{border-bottom:0}
 .ev .k{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:10px;color:var(--bg)}
@@ -104,9 +105,9 @@ main .wrap{display:flex;flex-direction:column;padding-block:14px calc(112px + en
 .tctl select{height:40px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:0 8px;font:inherit;font-size:13px;font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 @media (min-width:560px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.tile2{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px 10px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--line);text-align:left;width:100%;cursor:pointer;overflow:hidden;min-width:0}
-.tile2.edge{border-color:rgba(255,61,139,.55);background:rgba(255,61,139,.07)}
-.tile2.trade{border-color:rgba(61,217,255,.45)}
+.tile2{position:relative;display:flex;flex-direction:column;gap:4px;padding:10px 10px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);text-align:left;width:100%;cursor:pointer;overflow:hidden;min-width:0}
+.tile2.edge{border-color:rgba(229,72,77,.55);background:rgba(229,72,77,.07)}
+.tile2.trade{border-color:rgba(47,91,234,.45)}
 .tile2 canvas{width:100%;height:46px;display:block;margin-bottom:2px}
 .tile2 .nm{display:flex;align-items:center;gap:6px;min-width:0}
 .tile2 .nm i{font-style:normal;font-family:var(--display);font-weight:900;font-size:11px;color:var(--dim);flex:none}
@@ -117,9 +118,9 @@ main .wrap{display:flex;flex-direction:column;padding-block:14px calc(112px + en
 .tile2 .st{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tile2 .star{position:absolute;top:2px;right:2px;width:36px;height:36px}
 .more{width:100%;height:44px;margin-top:10px;border-radius:14px;border:1px solid var(--line);background:var(--raise);color:var(--ink);font-weight:800}
-.row{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:center;border-radius:16px;background:var(--surface);border:1px solid var(--line);position:relative;overflow:hidden}
-.row.edge{background:rgba(255,61,139,.08);border-color:rgba(255,61,139,.5);animation:alarm 1.6s ease-in-out infinite}
-@keyframes alarm{50%{box-shadow:0 0 18px rgba(255,61,139,.25)}}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 44px;align-items:center;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);position:relative;overflow:hidden}
+.row.edge{background:rgba(229,72,77,.08);border-color:rgba(229,72,77,.5);animation:alarm 1.6s ease-in-out infinite}
+@keyframes alarm{50%{box-shadow:0 0 18px rgba(229,72,77,.25)}}
 .row .main{display:grid;grid-template-columns:22px 38px minmax(0,1fr) 46px auto;align-items:center;gap:9px;padding:10px 0 12px 10px;border:0;background:none;text-align:left;min-width:0}
 .row .rk{font-family:var(--display);font-weight:900;font-size:15px;color:var(--dim);text-align:center}
 .row .who{display:flex;flex-direction:column;gap:1px;min-width:0}
@@ -135,24 +136,24 @@ main .wrap{display:flex;flex-direction:column;padding-block:14px calc(112px + en
 .star[aria-pressed="true"] svg{fill:var(--gold)}
 .row .bar{position:absolute;bottom:0;height:3px;border-radius:2px}
 .row.fl-up{animation:flUp .9s ease-out}.row.fl-down{animation:flDn .9s ease-out}
-@keyframes flUp{0%{background:rgba(212,255,58,.22)}}
-@keyframes flDn{0%{background:rgba(255,61,139,.22)}}
+@keyframes flUp{0%{background:rgba(0,163,92,.22)}}
+@keyframes flDn{0%{background:rgba(229,72,77,.22)}}
 .empty{color:var(--muted);text-align:center;padding:24px 12px;font-size:13.5px}
-.setup{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.setup{background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .note{font-size:12px;color:var(--muted);line-height:1.55;margin:14px 4px 0}
 .upd{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:center;margin-top:14px}
 /* статистика */
-.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px 14px}
+.card{background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:18px;padding:12px 14px}
 .strat{width:100%;text-align:left;cursor:pointer}
-.strat .tg{font-size:12px;color:#C9C3E6;margin-top:1px}
+.strat .tg{font-size:12px;color:#4B5563;margin-top:1px}
 .strat .go{font-size:11.5px;font-weight:700;color:var(--cyan);margin-top:3px}
-.hero2{border-radius:22px;padding:16px;background:linear-gradient(140deg,rgba(212,255,58,.14),rgba(61,217,255,.08));border:1px solid rgba(212,255,58,.35);margin-top:12px}
+.hero2{border-radius:22px;padding:16px;background:linear-gradient(140deg,rgba(0,163,92,.14),rgba(47,91,234,.08));border:1px solid rgba(0,163,92,.35);margin-top:12px}
 .hero2 small{font-family:var(--display);font-weight:800;font-size:10px;letter-spacing:.14em;color:var(--accent)}
 .hero2 p{margin:6px 0 0;font-size:16px;font-weight:600;line-height:1.45}
 .howl{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;counter-reset:st}
 .howl li{display:grid;grid-template-columns:28px 1fr;gap:10px;font-size:14.5px;line-height:1.45;counter-increment:st}
 .howl li::before{content:counter(st);width:28px;height:28px;border-radius:9px;background:var(--accent);color:var(--bg);display:grid;place-items:center;font-family:var(--display);font-weight:900;font-size:12px}
-.warn{border-radius:18px;padding:12px 14px;background:rgba(255,61,139,.08);border:1px solid rgba(255,61,139,.4);font-size:14px;line-height:1.45}
+.warn{border-radius:18px;padding:12px 14px;background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.4);font-size:14px;line-height:1.45}
 .warn b{display:block;font-family:var(--display);font-size:10.5px;letter-spacing:.12em;color:var(--down);margin-bottom:4px}
 .strat{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:12px;align-items:center}
 .strat b{font-size:14.5px}
@@ -160,7 +161,7 @@ main .wrap{display:flex;flex-direction:column;padding-block:14px calc(112px + en
 .strat .r{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .grave{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px}
 .grave .stamp{position:absolute;right:12px;top:10px;font-family:var(--display);font-weight:900;font-size:10px;letter-spacing:.1em;color:var(--down);border:2px solid var(--down);border-radius:6px;padding:2px 7px;transform:rotate(7deg)}
-.grave .av{background:#3A3360;color:var(--muted)}
+.grave .av{background:#D1D5DB;color:var(--muted)}
 .grave .nm{font-size:14.5px;font-weight:800;text-decoration:line-through;text-decoration-color:var(--down)}
 details.grave summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:6px}
 details.grave summary::-webkit-details-marker{display:none}
@@ -175,7 +176,7 @@ details.grave .desc{display:flex;flex-direction:column;gap:10px;margin-top:10px;
 .real ul{margin:6px 0 0;padding-left:18px;font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
 /* таб лента */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:0 max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px))}
-nav.tabs .in{max-width:520px;margin:0 auto;height:62px;background:rgba(26,23,48,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:22px;display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+nav.tabs .in{max-width:520px;margin:0 auto;height:62px;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:22px;display:flex;align-items:center;justify-content:space-around;padding:0 6px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
 nav.tabs button{position:relative;height:46px;min-width:46px;border:0;border-radius:16px;background:none;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;font-size:12.5px;font-weight:800;transition:background .3s,color .3s}
 nav.tabs button svg{width:21px;height:21px;flex:none}
 nav.tabs button .t{display:none}
@@ -189,35 +190,35 @@ nav.tabs .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;b
 .ph{display:flex;align-items:center;gap:10px;padding:12px 0 4px}
 .back{width:44px;height:44px;border:0;border-radius:14px;background:var(--raise);display:grid;place-items:center;flex:none}
 .back svg{width:22px;height:22px}
-.glowtop{position:absolute;left:0;right:0;top:0;height:300px;pointer-events:none;background:linear-gradient(180deg,var(--gl),rgba(13,11,26,0))}
+.glowtop{position:absolute;left:0;right:0;top:0;height:300px;pointer-events:none;background:linear-gradient(180deg,var(--gl),rgba(245,246,248,0))}
 .pav{width:52px;height:52px;border-radius:17px;font-size:19px;transform:rotate(-5deg);box-shadow:0 10px 30px var(--glc)}
 .pt{display:flex;flex-direction:column;flex:1;min-width:0}
 .pt b{font-family:var(--display);font-weight:900;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pt span{font-size:12px;color:#C9C3E6}
+.pt span{font-size:12px;color:#4B5563}
 .cap{display:flex;align-items:flex-end;justify-content:space-between;padding-top:14px}
 .cap .l{display:flex;flex-direction:column;gap:3px}
-.cap .l small{font-size:12.5px;font-weight:700;color:#C9C3E6}
+.cap .l small{font-size:12.5px;font-weight:700;color:#4B5563}
 .cap .l b{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:-.03em}
 .cap .l i{font-style:normal;font-family:var(--display);font-weight:800;font-size:12px}
 .lives{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
-.lives small{font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#C9C3E6}
+.lives small{font-size:10.5px;font-weight:800;letter-spacing:.1em;color:#4B5563}
 .lives span{display:flex;gap:4px}
 .lives svg{width:20px;height:18px}
 .legend{margin-left:auto;font-size:11.5px;color:var(--muted)}
-.posc{margin-top:14px;border-radius:22px;padding:12px 14px;background:linear-gradient(120deg,rgba(61,217,255,.16),rgba(212,255,58,.08));border:1px solid rgba(61,217,255,.45);display:flex;flex-direction:column;gap:10px;width:100%;text-align:left}
+.posc{margin-top:14px;border-radius:22px;padding:12px 14px;background:linear-gradient(120deg,rgba(47,91,234,.16),rgba(0,163,92,.08));border:1px solid rgba(47,91,234,.45);display:flex;flex-direction:column;gap:10px;width:100%;text-align:left}
 .posc .r1{display:flex;align-items:center;gap:10px}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 6px rgba(61,217,255,.2);flex:none;animation:pulse 1.6s infinite}
-@keyframes pulse{50%{box-shadow:0 0 0 10px rgba(61,217,255,0)}}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--cyan);box-shadow:0 0 0 6px rgba(47,91,234,.2);flex:none;animation:pulse 1.6s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 10px rgba(47,91,234,0)}}
 .posc .t{display:flex;flex-direction:column;flex:1;min-width:0}
 .posc .t b{font-size:14.5px}
 .posc .t span{font-size:12px;color:var(--muted)}
 .posc .r{display:flex;flex-direction:column;align-items:flex-end}
-.meter{position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--down) 0%,#3A3360 33%,#3A3360 55%,var(--accent) 100%)}
+.meter{position:relative;height:8px;border-radius:4px;background:linear-gradient(90deg,var(--down) 0%,#D1D5DB 33%,#D1D5DB 55%,var(--accent) 100%)}
 .meter i{position:absolute;top:-4px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:var(--bg);border:3px solid var(--ink);transition:left .6s}
 .meter.big{height:12px;border-radius:6px}.meter.big i{top:-6px;width:24px;height:24px;margin-left:-12px;border-width:4px}
 .ml{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;font-weight:700}
-.pend{margin-top:14px;border:1px dashed rgba(61,217,255,.6);background:rgba(61,217,255,.06);border-radius:16px;padding:10px 14px;font-size:13px}
-.tr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--line);width:100%;text-align:left}
+.pend{margin-top:14px;border:1px dashed rgba(47,91,234,.6);background:rgba(47,91,234,.06);border-radius:16px;padding:10px 14px;font-size:13px}
+.tr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 12px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);width:100%;text-align:left}
 .bs{display:flex;align-items:center;gap:3px}
 .bs i{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-style:normal;font-family:var(--display);font-weight:900;font-size:10px;color:var(--bg)}
 .bs em{width:8px;height:2px;background:var(--dim)}
@@ -250,28 +251,28 @@ nav.tabs .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;b
 /* известия */
 .sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;background:rgba(5,3,8,.6);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);animation:fade .25s}
 @keyframes fade{from{opacity:0}}
-.sheet .bx{width:100%;max-width:560px;max-height:80vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;border-radius:26px 26px 0 0;padding:10px 16px calc(22px + env(safe-area-inset-bottom,0px));animation:upS .4s cubic-bezier(.2,1.1,.3,1)}
+.sheet .bx{width:100%;max-width:560px;max-height:80vh;overflow:auto;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);border-bottom:0;border-radius:26px 26px 0 0;padding:10px 16px calc(22px + env(safe-area-inset-bottom,0px));animation:upS .4s cubic-bezier(.2,1.1,.3,1)}
 @keyframes upS{from{transform:translateY(100%)}}
 .grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
 /* УВОЛНЕН */
-.boom{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;cursor:pointer;background:radial-gradient(circle at 50% 40%,rgba(255,61,139,.45),rgba(13,11,26,.96) 62%);animation:redflash .5s steps(2) 2}
-@keyframes redflash{50%{background:rgba(255,61,139,.6)}}
+.boom{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:24px;cursor:pointer;background:radial-gradient(circle at 50% 40%,rgba(229,72,77,.45),rgba(245,246,248,.96) 62%);animation:redflash .5s steps(2) 2}
+@keyframes redflash{50%{background:rgba(229,72,77,.6)}}
 .boom .card2{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
 .boom .victim{display:flex;flex-direction:column;align-items:center;gap:8px;animation:fall .9s cubic-bezier(.5,0,.8,.4) 1.5s both}
 @keyframes fall{to{transform:translateY(40px) rotate(12deg);opacity:.25;filter:grayscale(1)}}
 .boom .av{width:92px;height:92px;border-radius:30px;font-size:30px}
 .boom .nm{font-family:var(--display);font-weight:800;font-size:22px}
-.boom .big{font-family:var(--display);font-weight:900;font-size:clamp(40px,12vw,64px);color:var(--down);border:5px solid var(--down);border-radius:14px;padding:2px 16px;transform:rotate(-9deg);animation:slam .45s cubic-bezier(.2,1.7,.4,1) .35s both;text-shadow:0 0 30px rgba(255,61,139,.7);margin-top:-30px;position:relative;z-index:2;background:rgba(13,11,26,.4)}
+.boom .big{font-family:var(--display);font-weight:900;font-size:clamp(40px,12vw,64px);color:var(--down);border:5px solid var(--down);border-radius:14px;padding:2px 16px;transform:rotate(-9deg);animation:slam .45s cubic-bezier(.2,1.7,.4,1) .35s both;text-shadow:0 0 30px rgba(229,72,77,.7);margin-top:-30px;position:relative;z-index:2;background:rgba(245,246,248,.4)}
 @keyframes slam{from{transform:rotate(-9deg) scale(3.2);opacity:0}to{transform:rotate(-9deg) scale(1);opacity:1}}
-.boom .why{color:#FFC2DA;font-weight:700;max-width:320px}
-.boom .next{display:flex;align-items:center;gap:12px;text-align:left;background:rgba(61,217,255,.12);border:1px solid rgba(61,217,255,.5);border-radius:18px;padding:10px 14px;max-width:340px;animation:slideIn .6s cubic-bezier(.2,1.4,.4,1) 2.1s both}
+.boom .why{color:#B42318;font-weight:700;max-width:320px}
+.boom .next{display:flex;align-items:center;gap:12px;text-align:left;background:rgba(47,91,234,.12);border:1px solid rgba(47,91,234,.5);border-radius:18px;padding:10px 14px;max-width:340px;animation:slideIn .6s cubic-bezier(.2,1.4,.4,1) 2.1s both}
 .boom .next .av{width:44px;height:44px;border-radius:14px;font-size:14px}
 .boom .next small{display:block;font-size:10px;font-weight:900;letter-spacing:.12em;color:var(--cyan)}
 @keyframes slideIn{from{opacity:0;transform:translateY(30px) scale(.9)}}
 .boom .tap{color:var(--muted);font-size:12px;animation:fade .4s 2.8s both}
 /* интро */
-.intro{position:fixed;inset:0;z-index:100;background:#07060E;display:grid;place-items:center;overflow:hidden;cursor:pointer;clip-path:circle(150% at 50% 45%)}
-.intro .glow{position:absolute;left:50%;top:50%;width:140vmax;height:140vmax;transform:translate(-50%,-50%) scale(0);border-radius:50%;background:radial-gradient(circle,rgba(212,255,58,.35),rgba(61,217,255,.12) 30%,transparent 60%);animation:burst 1.4s cubic-bezier(.2,.8,.2,1) .25s forwards}
+.intro{position:fixed;inset:0;z-index:100;background:#F5F6F8;display:grid;place-items:center;overflow:hidden;cursor:pointer;clip-path:circle(150% at 50% 45%)}
+.intro .glow{position:absolute;left:50%;top:50%;width:140vmax;height:140vmax;transform:translate(-50%,-50%) scale(0);border-radius:50%;background:radial-gradient(circle,rgba(0,163,92,.35),rgba(47,91,234,.12) 30%,transparent 60%);animation:burst 1.4s cubic-bezier(.2,.8,.2,1) .25s forwards}
 @keyframes burst{to{transform:translate(-50%,-50%) scale(1)}}
 .intro .stack{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px}
 .intro .f{width:104px;height:104px;filter:drop-shadow(0 0 30px rgba(255,106,26,.9));transform:scale(0);animation:ignite .7s cubic-bezier(.2,1.8,.4,1) .1s forwards,flick 1.5s ease-in-out .8s infinite}
@@ -287,7 +288,7 @@ nav.tabs .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;b
 .intro .pv b{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:-.02em}
 .intro .sub{font-weight:800;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);opacity:0;animation:fadeUp .5s 1.3s forwards;text-align:center;padding:0 20px;margin-top:8px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.intro .load{width:160px;height:4px;border-radius:2px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:10px;opacity:0;animation:fadeUp .4s 1.3s forwards}
+.intro .load{width:160px;height:4px;border-radius:2px;background:rgba(14,17,22,.1);overflow:hidden;margin-top:10px;opacity:0;animation:fadeUp .4s 1.3s forwards}
 .intro .load i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--cyan));animation:fillx 1.1s ease-in-out 1.3s forwards}
 @keyframes fillx{to{width:100%}}
 .intro .sparks i{position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px 2px var(--accent);opacity:0;animation:sp 1s cubic-bezier(.1,.8,.3,1) .55s forwards}
@@ -307,16 +308,16 @@ nav.tabs .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;b
   <div class="stack">
     <svg class="f" viewBox="0 0 24 24" aria-hidden="true"><path fill="url(#fg)" d="M12 1.5c1.1 3.9 5.6 6.2 5.6 11.6A5.6 5.6 0 0 1 6.4 13c0-2.3.9-3.9 2.3-5.1.2 1.8 1.2 2.9 2.3 3.4 0-3.4.3-6.9 1-9.8z"/><path fill="#FFF3C4" opacity=".85" d="M12 12.2c.5 1.5 2.3 2.3 2.3 4.2a2.3 2.3 0 0 1-4.6 0c0-1 .5-1.7 1.1-2.1.1.7.5 1 .9 1.2 0-1.2.1-2.3.3-3.3z"/></svg>
     <h1><span class="a">FIRED</span><span class="b">UP</span></h1>
-    <div class="pv"><small>Портфейл на отбора</small><b id="introVal">$100,000</b></div>
-    <div class="sub" id="introSub">100 трейдъри · по $50 · без милост</div>
+    <div class="pv"><small>Портфейл на отбора</small><b id="introVal">$200,000</b></div>
+    <div class="sub" id="introSub">100 трейдъри · по $2,000 · без милост</div>
     <div class="load"><i></i></div>
   </div>
 </div>
 
 <header class="top">
   <div class="wrap">
-    <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#D4FF3A" d="M12 1.5c1.1 3.9 5.6 6.2 5.6 11.6A5.6 5.6 0 0 1 6.4 13c0-2.3.9-3.9 2.3-5.1.2 1.8 1.2 2.9 2.3 3.4 0-3.4.3-6.9 1-9.8z"/></svg>FIRED UP</div>
-    <div class="clockp" id="clockp"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" fill="none" stroke="#2C2748" stroke-width="4"/><circle id="clockRing" cx="13" cy="13" r="10" fill="none" stroke="#D4FF3A" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 63" transform="rotate(-90 13 13)"/></svg><div><b id="pillTxt">…</b><span id="clock"></span></div></div>
+    <div class="logo"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#00A35C" d="M12 1.5c1.1 3.9 5.6 6.2 5.6 11.6A5.6 5.6 0 0 1 6.4 13c0-2.3.9-3.9 2.3-5.1.2 1.8 1.2 2.9 2.3 3.4 0-3.4.3-6.9 1-9.8z"/></svg>FIRED UP</div>
+    <div class="clockp" id="clockp"><svg viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" fill="none" stroke="#E5E7EB" stroke-width="4"/><circle id="clockRing" cx="13" cy="13" r="10" fill="none" stroke="#00A35C" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 63" transform="rotate(-90 13 13)"/></svg><div><b id="pillTxt">…</b><span id="clock"></span></div></div>
     <button class="icb" id="bell" type="button" aria-label="Известия"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg><span class="n" id="bellN" hidden></span></button>
   </div>
   <div class="tape" id="tape" hidden><div class="run" id="tapeRun"></div></div>
@@ -342,7 +343,7 @@ nav.tabs .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;b
     <div class="box" id="miniFeed"></div>
     <button class="mvp" type="button" id="mvp" hidden></button>
     <div class="h"><b>Трейдъри</b><span id="tCount">★ = следиш го</span></div>
-    <div class="tctl"><input type="search" id="tq" placeholder="Търси трейдър или стратегия…" aria-label="Търси трейдър"><select id="tsort" aria-label="Подреди"><option value="today">Днес</option><option value="total">Общо</option><option value="wr">Успех</option><option value="name">Име</option></select></div>
+    <div class="tctl"><input type="search" id="tq" placeholder="Търси трейдър или стратегия…" aria-label="Търси трейдър"><select id="tsort" aria-label="Подреди"><option value="today">Днес %</option><option value="total">Общо %</option><option value="wr">Успех</option><option value="name">Име</option></select></div>
     <div class="filt" id="filt"><button type="button" data-f="all">Всички</button><button type="button" data-f="trade">В сделка</button><button type="button" data-f="edge">На косъм</button><button type="button" data-f="fav">★ Следени</button></div>
     <div class="grid" id="rows"></div>
     <button type="button" class="more" id="moreBtn" hidden></button>
@@ -395,18 +396,18 @@ const money=(n,sign)=>{const a=Math.abs(n).toLocaleString('en-US',{minimumFracti
 const money0=(n,sign)=>(n<0?'−':(sign&&n>0?'+':''))+'$'+Math.round(Math.abs(n)).toLocaleString('en-US');
 const pct=n=>n==null?'—':(n>0?'+':n<0?'−':'')+Math.abs(n).toFixed(2).replace('.',',')+'%';
 const cls=n=>n>0?'up':n<0?'down':'';
-const col=n=>n>0?'#D4FF3A':n<0?'#FF3D8B':'#A39DC2';
+const col=n=>n>0?'#00A35C':n<0?'#E5484D':'#6B7280';
 const px=n=>'$'+(n<1?n.toFixed(4):n.toFixed(2));
 const nyTime=ms=>new Date(ms).toLocaleTimeString('bg-BG',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit'});
 const nyDate=ms=>new Date(ms).toLocaleDateString('bg-BG',{timeZone:'America/New_York',day:'numeric',month:'numeric'});
 const initials=n=>n.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
 function dur(ms){const m=Math.max(0,Math.round(ms/60000));if(m<60)return m+' мин';const h=Math.round(m/60);if(h<24)return h+' ч';return Math.round(h/24)+' дни'}
 const now=()=>D&&D.simMs?D.simMs:Date.now();
-const startTotal=()=>(D?D.startCash:50)*(D&&(D.nBots||D.bots.length)||100);
+const startTotal=()=>(D?D.startCash:2000)*(D&&(D.nBots||D.bots.length)||100);
 const STAR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.3l1-6.2L3 9.7l6.2-.9z"/></svg>';
 const BACK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
 const HEART=c=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path fill="${c}" d="M12 21s-9-5.6-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.4-9 12-9 12z"/></svg>`;
-const EVK={buy:['B','#3DD9FF'],win:['S','#D4FF3A'],loss:['S','#FF3D8B'],fired:['!','#FF3D8B'],hired:['+','#3DD9FF'],info:['i','#4B4570']};
+const EVK={buy:['B','#2F5BEA'],win:['S','#00A35C'],loss:['S','#E5484D'],fired:['!','#E5484D'],hired:['+','#2F5BEA'],info:['i','#9CA3AF']};
 const WHYT={tp:'цел',sl:'стоп',be:'стоп на входа',trail:'плъзгащ стоп',time:'време',rsi:'прегря',vwap:'под средната цена',eod:'край на деня',fired:'уволнение'};
 
 /* ——— интро ——— */
@@ -423,7 +424,7 @@ function countTo(el,to,fmt,ms=900){const from=+el.dataset.v;el.dataset.v=to;if(r
 async function load(){
   try{const r=await fetch('/api/state',{cache:'no-store'});const d=await r.json();lastFetch=Date.now();
     if(d.error){setup(d.error,d.message);maybeEndIntro();return}$('#setup').hidden=true;D=d;
-    if(firstLoad){$('#introSub').textContent=`${d.bots.length} трейдъри · по $${d.startCash} · без милост`;const iv=$('#introVal');iv.dataset.v=startTotal();countTo(iv,startTotal()+(d.teamTotal||0),v=>money(v),1400)}
+    if(firstLoad){$('#introSub').textContent=`${d.bots.length} трейдъри · по ${money0(d.startCash)} · без милост`;const iv=$('#introVal');iv.dataset.v=startTotal();countTo(iv,startTotal()+(d.teamTotal||0),v=>money(v),1400)}
     render();maybeEndIntro();
     if(openFromUrl&&D.bots.some(b=>b.id===openFromUrl)){const id=openFromUrl;openFromUrl=null;setTimeout(()=>openTrader(id),introDone?0:2800)}}
   catch(e){$('#pillTxt').textContent='НЯМА ВРЪЗКА';maybeEndIntro()}
@@ -453,43 +454,43 @@ function render(){
   else{const fresh=d.fired.filter(f=>f.firedAt>animFired).reverse();if(fresh.length){boomQ.push(...fresh);animFired=nf;LS.set('fu-anim-fired',nf);if($('#boom').hidden)nextBoom()}}
 }
 function tape(d){const items=d.ticker||[];if(!items.length){$('#tape').hidden=true;return}$('#tape').hidden=false;
-  const html=items.map(t=>`<span>${esc(t.s)} ${t.halt?'<b style="color:#FFD23F">⏸ HALT</b> ':''}<span class="${cls(t.chg)}">${px(t.px)} ${t.chg==null?'':(t.chg>0?'▲':'▼')+Math.abs(t.chg).toFixed(1).replace('.',',')+'%'}</span></span>`).join('');
+  const html=items.map(t=>`<span>${esc(t.s)} ${t.halt?'<b style="color:#D99A00">⏸ HALT</b> ':''}<span class="${cls(t.chg)}">${px(t.px)} ${t.chg==null?'':(t.chg>0?'▲':'▼')+Math.abs(t.chg).toFixed(1).replace('.',',')+'%'}</span></span>`).join('');
   const run=$('#tapeRun');run.innerHTML=html+html;const key=items.map(t=>t.s).join();if(run.dataset.k!==key){run.dataset.k=key;run.style.animationDuration=Math.max(22,items.length*4)+'s'}}
 
 /* ——— графики ——— */
 function setupCv(cv){const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return null;cv.width=w*r;cv.height=h*r;const x=cv.getContext('2d');x.scale(r,r);return{x,w,h}}
 function rr(x,a,b,w,h,r){x.beginPath();x.roundRect?x.roundRect(a,b,w,h,r):x.rect(a,b,w,h)}
-function badge(x,cx,cy,k,big){const s=big?24:20,colr=k==='B'?'#D4FF3A':'#FF3D8B';x.save();x.shadowColor=colr;x.shadowBlur=big?14:6;x.fillStyle=colr;rr(x,cx-s/2,cy-s/2,s,s,7);x.fill();x.restore();
-  x.strokeStyle='#0D0B1A';x.lineWidth=2;rr(x,cx-s/2,cy-s/2,s,s,7);x.stroke();x.fillStyle='#0D0B1A';x.font=`900 ${big?11:10}px Unbounded, Arial Black, sans-serif`;x.textAlign='center';x.textBaseline='middle';x.fillText(k,cx,cy+.5);x.textBaseline='alphabetic'}
+function badge(x,cx,cy,k,big){const s=big?24:20,colr=k==='B'?'#00A35C':'#E5484D';x.save();x.shadowColor=colr;x.shadowBlur=big?14:6;x.fillStyle=colr;rr(x,cx-s/2,cy-s/2,s,s,7);x.fill();x.restore();
+  x.strokeStyle='#FFFFFF';x.lineWidth=2;rr(x,cx-s/2,cy-s/2,s,s,7);x.stroke();x.fillStyle='#FFFFFF';x.font=`900 ${big?11:10}px Manrope, sans-serif`;x.textAlign='center';x.textBaseline='middle';x.fillText(k,cx,cy+.5);x.textBaseline='alphabetic'}
 const nyDay=ms=>new Date(ms).toLocaleDateString('bg-BG',{timeZone:'America/New_York',weekday:'short',day:'numeric',month:'numeric'}).replace(/\.$/,'');
 const nyKey=ms=>new Date(ms).toLocaleDateString('en-CA',{timeZone:'America/New_York'});
 const tlabel=(t,span)=>nyDay(t)+' · '+nyTime(t); // винаги с деня: „пн, 26.10 · 13:09“
 // вертикални линии и надписи при смяна на деня (за графики, които обхващат няколко дни)
-function dayMarks(x,ts,X,top,bottom){let prev=null;x.save();x.font='800 9.5px JetBrains Mono';x.textAlign='left';
-  ts.forEach((t,i)=>{const k=nyKey(t);if(prev!==null&&k!==prev){const xx=X(i);x.strokeStyle='rgba(212,255,58,.25)';x.setLineDash([2,4]);x.lineWidth=1;x.beginPath();x.moveTo(xx,top);x.lineTo(xx,bottom);x.stroke();x.setLineDash([]);x.fillStyle='rgba(212,255,58,.8)';x.fillText(nyDay(t),xx+3,top+9)}prev=k});x.restore()}
+function dayMarks(x,ts,X,top,bottom){let prev=null;x.save();x.font='800 9.5px "JetBrains Mono", ui-monospace, monospace';x.textAlign='left';
+  ts.forEach((t,i)=>{const k=nyKey(t);if(prev!==null&&k!==prev){const xx=X(i);x.strokeStyle='rgba(0,163,92,.25)';x.setLineDash([2,4]);x.lineWidth=1;x.beginPath();x.moveTo(xx,top);x.lineTo(xx,bottom);x.stroke();x.setLineDash([]);x.fillStyle='rgba(0,163,92,.8)';x.fillText(nyDay(t),xx+3,top+9)}prev=k});x.restore()}
 /* линейна графика като в Trading 212: светеща линия, B/S, плъзгане с пръст; o.onHover(i|null) */
 function lineChart(cv,pts,o={},hx){
   const c=setupCv(cv);if(!c)return;const {x,w,h}=c;
-  if(!pts||pts.length<2){x.fillStyle='#A39DC2';x.font='600 12px Onest';x.textAlign='center';x.fillText(o.empty||'Още няма данни',w/2,h/2);o.onHover&&o.onHover(null);return}
+  if(!pts||pts.length<2){x.fillStyle='#6B7280';x.font='600 12px Manrope, system-ui, sans-serif';x.textAlign='center';x.fillText(o.empty||'Още няма данни',w/2,h/2);o.onHover&&o.onHover(null);return}
   const RW=o.rw??0,BH=16,H=h-BH,n=pts.length,vals=pts.map(p=>p[1]),base=o.base!=null?o.base:vals[0];
   let mn=Math.min(base,...vals),mx=Math.max(base,...vals);{const e=Math.max(Math.abs(base)*0.004,0.02);if(mx-mn<e){mx+=e/2;mn-=e/2}}const pad=(mx-mn)*.14;mn-=pad;mx+=pad;
   const X=i=>3+i/(n-1)*(w-RW-6),Y=v=>10+(mx-v)/(mx-mn)*(H-18),span=pts[n-1][0]-pts[0][0];
-  if(RW){x.font='700 9.5px JetBrains Mono';x.textAlign='left';for(let k=0;k<4;k++){const v=mn+(mx-mn)*(k+.5)/4,y=Y(v);x.strokeStyle='rgba(244,242,255,.05)';x.lineWidth=1;x.beginPath();x.moveTo(0,y);x.lineTo(w-RW,y);x.stroke();x.fillStyle='rgba(163,157,194,.8)';x.fillText((o.fmt||money0)(v),w-RW+4,y+3)}}
-  x.strokeStyle='rgba(75,69,112,.9)';x.setLineDash([2,5]);x.lineWidth=1;x.beginPath();x.moveTo(0,Y(base));x.lineTo(w-RW,Y(base));x.stroke();x.setLineDash([]);
-  if(o.baseLabel){x.fillStyle='rgba(163,157,194,.9)';x.font='700 9.5px JetBrains Mono';x.textAlign='right';x.fillText(o.baseLabel,w-RW-4,Y(base)-5)}
-  const m=Math.max(2,Math.round((o.prog==null?1:o.prog)*n));const c1=vals[n-1]>=base?'#D4FF3A':'#FF3D8B';
+  if(RW){x.font='700 9.5px "JetBrains Mono", ui-monospace, monospace';x.textAlign='left';for(let k=0;k<4;k++){const v=mn+(mx-mn)*(k+.5)/4,y=Y(v);x.strokeStyle='rgba(14,17,22,.05)';x.lineWidth=1;x.beginPath();x.moveTo(0,y);x.lineTo(w-RW,y);x.stroke();x.fillStyle='rgba(107,114,128,.8)';x.fillText((o.fmt||money0)(v),w-RW+4,y+3)}}
+  x.strokeStyle='rgba(156,163,175,.9)';x.setLineDash([2,5]);x.lineWidth=1;x.beginPath();x.moveTo(0,Y(base));x.lineTo(w-RW,Y(base));x.stroke();x.setLineDash([]);
+  if(o.baseLabel){x.fillStyle='rgba(107,114,128,.9)';x.font='700 9.5px "JetBrains Mono", ui-monospace, monospace';x.textAlign='right';x.fillText(o.baseLabel,w-RW-4,Y(base)-5)}
+  const m=Math.max(2,Math.round((o.prog==null?1:o.prog)*n));const c1=vals[n-1]>=base?'#00A35C':'#E5484D';
   const path=()=>{x.beginPath();for(let i=0;i<m;i++)i?x.lineTo(X(i),Y(vals[i])):x.moveTo(X(i),Y(vals[i]))};
   const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,c1+'52');g.addColorStop(1,c1+'00');path();x.lineTo(X(m-1),H);x.lineTo(X(0),H);x.closePath();x.fillStyle=g;x.fill();
   path();x.strokeStyle=c1;x.globalAlpha=.16;x.lineWidth=7;x.lineJoin='round';x.stroke();x.globalAlpha=1;path();x.lineWidth=2.4;x.stroke();
   const at=t=>{if(t<pts[0][0]||t>pts[n-1][0]+90000)return -1;const i=pts.findIndex(p=>p[0]>=t);return i<0?n-1:i};
-  if(m===n){for(const mk of (o.marks||[])){const i=at(mk.t);if(i<0)continue;const y=Y(vals[i]),by=y+(mk.k==='B'?20:-20);x.strokeStyle=mk.k==='B'?'rgba(212,255,58,.6)':'rgba(255,61,139,.6)';x.lineWidth=1;x.beginPath();x.moveTo(X(i),y);x.lineTo(X(i),by);x.stroke();badge(x,X(i),by,mk.k,mk.big)}
+  if(m===n){for(const mk of (o.marks||[])){const i=at(mk.t);if(i<0)continue;const y=Y(vals[i]),by=y+(mk.k==='B'?20:-20);x.strokeStyle=mk.k==='B'?'rgba(0,163,92,.6)':'rgba(229,72,77,.6)';x.lineWidth=1;x.beginPath();x.moveTo(X(i),y);x.lineTo(X(i),by);x.stroke();badge(x,X(i),by,mk.k,mk.big)}
     if(hx==null){const ly=Y(vals[n-1]);x.fillStyle=c1;x.globalAlpha=.2;x.beginPath();x.arc(X(n-1)-2,ly,11,0,7);x.fill();x.globalAlpha=1;x.beginPath();x.arc(X(n-1)-2,ly,4.5,0,7);x.fill()}}
   dayMarks(x,pts.map(p=>p[0]),X,0,H);
-  x.fillStyle='rgba(163,157,194,.85)';x.font='700 10px JetBrains Mono';x.textAlign='left';x.fillText(tlabel(pts[0][0],span),2,h-3);x.textAlign='right';x.fillText(tlabel(pts[n-1][0],span),w-RW-2,h-3);
+  x.fillStyle='rgba(107,114,128,.85)';x.font='700 10px "JetBrains Mono", ui-monospace, monospace';x.textAlign='left';x.fillText(tlabel(pts[0][0],span),2,h-3);x.textAlign='right';x.fillText(tlabel(pts[n-1][0],span),w-RW-2,h-3);
   if(hx!=null){const i=Math.max(0,Math.min(n-1,Math.round((hx-3)/(w-RW-6)*(n-1))));const xx=X(i),yy=Y(vals[i]);
-    x.strokeStyle='rgba(244,242,255,.55)';x.setLineDash([3,3]);x.lineWidth=1;x.beginPath();x.moveTo(xx,0);x.lineTo(xx,H);x.stroke();x.setLineDash([]);
-    x.fillStyle='#0D0B1A';x.strokeStyle='#F4F2FF';x.lineWidth=3;x.beginPath();x.arc(xx,yy,6,0,7);x.fill();x.stroke();
-    if(o.onHover)o.onHover(i,pts,base);else{const txt=`${(o.fmt||money)(vals[i])}  ${tlabel(pts[i][0],span)}`;x.font='800 11px JetBrains Mono';const tw=x.measureText(txt).width+16,bx=Math.min(Math.max(0,xx-tw/2),w-tw);x.fillStyle='#F4F2FF';rr(x,bx,1,tw,22,7);x.fill();x.fillStyle='#0D0B1A';x.textAlign='left';x.fillText(txt,bx+8,16)}}
+    x.strokeStyle='rgba(14,17,22,.55)';x.setLineDash([3,3]);x.lineWidth=1;x.beginPath();x.moveTo(xx,0);x.lineTo(xx,H);x.stroke();x.setLineDash([]);
+    x.fillStyle='#FFFFFF';x.strokeStyle='#0E1116';x.lineWidth=3;x.beginPath();x.arc(xx,yy,6,0,7);x.fill();x.stroke();
+    if(o.onHover)o.onHover(i,pts,base);else{const txt=`${(o.fmt||money)(vals[i])}  ${tlabel(pts[i][0],span)}`;x.font='800 11px "JetBrains Mono", ui-monospace, monospace';const tw=x.measureText(txt).width+16,bx=Math.min(Math.max(0,xx-tw/2),w-tw);x.fillStyle='#0E1116';rr(x,bx,1,tw,22,7);x.fill();x.fillStyle='#FFFFFF';x.textAlign='left';x.fillText(txt,bx+8,16)}}
   else if(o.onHover)o.onHover(null,pts,base);
 }
 function scrub(cv,draw){const at=e=>{const r=cv.getBoundingClientRect();return e.clientX-r.left};
@@ -498,10 +499,10 @@ function scrub(cv,draw){const at=e=>{const r=cv.getBoundingClientRect();return e
 function tfFilter(pts,tf){if(!pts||!pts.length)return [];const last=pts[pts.length-1][0];
   const from=tf==='1h'?last-3600e3:tf==='1d'?((D.session&&D.session.start)||last-86400e3):tf==='1w'?last-7*86400e3:tf==='1m'?last-30*86400e3:0;
   const f=pts.filter(p=>p[0]>=from);return f.length>=2?f:pts.slice(-2)}
-function mini(cv,b){const c=setupCv(cv);if(!c)return;const {x,w,h}=c;const vals=(b.mini||[]).slice();if(vals.length<2){x.strokeStyle='#4B4570';x.beginPath();x.moveTo(0,h/2);x.lineTo(w,h/2);x.stroke();return}
+function mini(cv,b){const c=setupCv(cv);if(!c)return;const {x,w,h}=c;const vals=(b.mini||[]).slice();if(vals.length<2){x.strokeStyle='#9CA3AF';x.beginPath();x.moveTo(0,h/2);x.lineTo(w,h/2);x.stroke();return}
   const base=D?D.startCash:vals[0];let mn=Math.min(base,...vals),mx=Math.max(base,...vals);const e=Math.max(base*0.004,0.02);if(mx-mn<e){mx+=e/2;mn-=e/2}
   const X=i=>1+i/(vals.length-1)*(w-2),Y=v=>h-3-(v-mn)/(mx-mn)*(h-6),c1=col(vals[vals.length-1]-base);
-  x.strokeStyle='rgba(163,157,194,.35)';x.setLineDash([2,3]);x.lineWidth=1;x.beginPath();x.moveTo(0,Y(base));x.lineTo(w,Y(base));x.stroke();x.setLineDash([]);
+  x.strokeStyle='rgba(107,114,128,.35)';x.setLineDash([2,3]);x.lineWidth=1;x.beginPath();x.moveTo(0,Y(base));x.lineTo(w,Y(base));x.stroke();x.setLineDash([]);
   const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,c1+'45');g.addColorStop(1,c1+'00');
   x.beginPath();vals.forEach((v,i)=>i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v)));x.lineTo(X(vals.length-1),h);x.lineTo(X(0),h);x.closePath();x.fillStyle=g;x.fill();
   x.beginPath();vals.forEach((v,i)=>i?x.lineTo(X(i),Y(v)):x.moveTo(X(i),Y(v)));x.strokeStyle=c1;x.lineWidth=1.8;x.lineJoin='round';x.stroke();
@@ -525,7 +526,7 @@ function home(d){
   // MVP
   const top=d.bots[0];const mv=$('#mvp');
   if(top&&top.today>0){const tt={length:top.todayN||0};const w=top.todayW||0;
-    mv.hidden=false;mv.dataset.id=top.id;mv.innerHTML=`<span><span class="av" style="--c:${top.color}">${esc(initials(top.name))}</span><span class="t"><small>MVP НА ДЕНЯ</small><b>${esc(top.name)}</b><i>${tt.length?`${w} от ${tt.length} сделки на печалба днес`:'още без сделки днес'} · ${esc(top.style)}</i></span><b class="d up" style="font-size:15px">${money(top.today,true)}</b></span>`}
+    mv.hidden=false;mv.dataset.id=top.id;mv.innerHTML=`<span><span class="av" style="--c:${top.color}">${esc(initials(top.name))}</span><span class="t"><small>MVP НА ДЕНЯ</small><b>${esc(top.name)}</b><i>${tt.length?`${w} от ${tt.length} сделки на печалба днес`:'още без сделки днес'} · ${esc(top.style)}</i></span><b class="d up" style="font-size:15px;text-align:right">${pct(top.todayPct)}<small style="display:block;font-size:11px;opacity:.7">${money(top.today,true)}</small></b></span>`}
   else mv.hidden=true;
   rows(d);
 }
@@ -546,11 +547,11 @@ function homeChart(d,hx){
   homeDrawn=true;const s0=performance.now();const step=t=>{const k=Math.min(1,(t-s0)/1100);lineChart(cv,pts,{...o,onHover:null,prog:1-Math.pow(1-k,3)});if(k<1&&!cv._on)requestAnimationFrame(step)};requestAnimationFrame(step);
 }
 function status(b){
-  if(b.positions.length){const p=b.positions[0];return p.halted?[`⏸ ${p.sym} е спряна (halt) · ${pct(p.pct)}`,'#FFD23F','trade']:[`В сделка · ${p.sym} ${pct(p.pct)}`,'#3DD9FF','trade']}
-  if(b.pending)return [`Поръчка: ${b.pending.s} до ${px(b.pending.limit)}`,'#3DD9FF','trade'];
-  if(b.risk>=.67){const lv=D.strikesToFire-b.strikes;return [`На косъм · ${b.strikes} от ${D.strikesToFire} загуби`,'#FF3D8B','edge']}
-  const t=b.last;if(t&&D.session&&t.out>=D.session.start)return [`Последна: ${t.sym} ${pct(t.pct)}`,'#A39DC2',''];
-  return ['Чака сигнал','#A39DC2',''];
+  if(b.positions.length){const p=b.positions[0];return p.halted?[`⏸ ${p.sym} е спряна (halt) · ${pct(p.pct)}`,'#D99A00','trade']:[`В сделка · ${p.sym} ${pct(p.pct)}`,'#2F5BEA','trade']}
+  if(b.pending)return [`Поръчка: ${b.pending.s} до ${px(b.pending.limit)}`,'#2F5BEA','trade'];
+  if(b.risk>=.67){const lv=D.strikesToFire-b.strikes;return [`На косъм · ${b.strikes} от ${D.strikesToFire} загуби`,'#E5484D','edge']}
+  const t=b.last;if(t&&D.session&&t.out>=D.session.start)return [`Последна: ${t.sym} ${pct(t.pct)}`,'#6B7280',''];
+  return ['Чака сигнал','#6B7280',''];
 }
 function rows(d){
   const el=$('#rows');
@@ -558,23 +559,24 @@ function rows(d){
   const q=tq.trim().toLowerCase();const rank={};d.bots.forEach((b,i)=>rank[b.id]=i+1);
   let list=d.bots.map(b=>({b,st:status(b)})).filter(({b,st})=>(filt==='all'||(filt==='trade'&&st[2]==='trade')||(filt==='edge'&&b.risk>=.67)||(filt==='fav'&&favs.has(b.id)))&&(!q||b.name.toLowerCase().includes(q)||String(b.style).toLowerCase().includes(q)));
   const tm=filt==='trade',pos=b=>b.positions[0];
-  const S={today:(a,b)=>b.b.today-a.b.today,total:(a,b)=>b.b.total-a.b.total,wr:(a,b)=>(b.b.winRate??-1)-(a.b.winRate??-1)||b.b.closed-a.b.closed,name:(a,b)=>a.b.name.localeCompare(b.b.name,'bg')};
-  list.sort(tm?(a,b)=>(pos(b.b)?pos(b.b).pnl:-1e9)-(pos(a.b)?pos(a.b).pnl:-1e9):(S[tsort]||S.today));
+  const S={today:(a,b)=>(b.b.todayPct||0)-(a.b.todayPct||0),total:(a,b)=>b.b.total-a.b.total,wr:(a,b)=>(b.b.winRate??-1)-(a.b.winRate??-1)||b.b.closed-a.b.closed,name:(a,b)=>a.b.name.localeCompare(b.b.name,'bg')};
+  list.sort(tm?(a,b)=>(pos(b.b)?pos(b.b).pct:-1e9)-(pos(a.b)?pos(a.b).pct:-1e9):(S[tsort]||S.today));
   $('#tCount').textContent=`${list.length} от ${d.bots.length} · ★ = следиш го`;
   const vis=list.slice(0,shown);const mb=$('#moreBtn');mb.hidden=list.length<=shown;mb.textContent=`Покажи още (${list.length-shown})`;
-  const RC=['#FFD23F','#D9DDE8','#E8955A'];
-  el.innerHTML=vis.map(({b,st})=>{const fav=favs.has(b.id),r=rank[b.id],p=tm?pos(b):null;if(p)st=p.halted?[`⏸ ${p.sym} спряна`,'#FFD23F','trade']:[`${p.sym} · ${dur(now()-p.t)} в сделка`,'#3DD9FF','trade'];
+  const RC=['#D99A00','#8A93A6','#D9772B'];
+  el.innerHTML=vis.map(({b,st})=>{const fav=favs.has(b.id),r=rank[b.id],p=tm?pos(b):null;if(p)st=p.halted?[`⏸ ${p.sym} спряна`,'#D99A00','trade']:[`${p.sym} · ${dur(now()-p.t)} в сделка`,'#2F5BEA','trade'];
     return `<div class="tile2${b.risk>=.67?' edge':st[2]==='trade'?' trade':''}" style="--c:${b.color}" data-id="${b.id}"><button type="button" data-open="${b.id}" style="all:unset;display:flex;flex-direction:column;gap:3px;cursor:pointer;min-width:0">
       <canvas aria-hidden="true"></canvas>
       <span class="nm"><i style="${r<=3?'color:'+RC[r-1]:''}">${r}</i><span class="dot2"></span><b>${esc(b.name)}</b></span>
-      <span class="val num">${money(b.equity)}</span>
-      ${p?`<span class="pl2" style="color:${col(p.pnl)}">сделка ${money(p.pnl,true)} · ${pct(p.pct)}</span>`:`<span class="pl2" style="color:${col(b.total)}">P/L ${money(b.total,true)} · ${pct(b.total/d.startCash*100)}</span>`}
+      <span class="val num" style="color:${col(b.total)}">${pct(b.total/d.startCash*100)}</span>
+      <span class="pl2 mut" style="font-weight:700">${money(b.equity)} · ${money(b.total,true)}</span>
+      ${p?`<span class="pl2" style="color:${col(p.pnl)}">сделка ${pct(p.pct)} · ${money(p.pnl,true)}</span>`:''}
       <span class="st" style="color:${st[1]}">${esc(st[0])}</span></button>
       <button class="star" type="button" data-star="${b.id}" aria-pressed="${fav}" aria-label="Следи ${esc(b.name)}">${STAR}</button></div>`}).join('')||`<div class="empty" style="grid-column:1/-1">${filt==='fav'?'Още не следиш никого — натисни ★ на трейдър.':'Няма трейдъри тук.'}</div>`;
   el.querySelectorAll('.tile2').forEach(c=>{const b=d.bots.find(x=>x.id===c.dataset.id);mini(c.querySelector('canvas'),b)});
 }
 function evRow(e,full){const k=EVK[e.k]||EVK.info;const key=e.t+'|'+e.x;const fresh=!firstLoad&&!seenFeed.has(key);seenFeed.add(key);
-  return `<div class="ev${fresh?' fresh':''}"><span class="k" style="background:${k[1]};${k[1]==='#4B4570'?'color:#F4F2FF':''}">${k[0]}</span><span class="x">${esc(e.x)}</span><time>${nyTime(e.t)}</time></div>`}
+  return `<div class="ev${fresh?' fresh':''}"><span class="k" style="background:${k[1]};${k[1]==='#9CA3AF'?'color:#0E1116':''}">${k[0]}</span><span class="x">${esc(e.x)}</span><time>${nyTime(e.t)}</time></div>`}
 function feedAll(d){$('#feedAll').innerHTML=d.feed.map(e=>evRow(e,true)).join('')||'<div class="empty">Тук ще се появява всяка покупка, продажба и уволнение.</div>';if(firstLoad)d.feed.forEach(e=>seenFeed.add(e.t+'|'+e.x))}
 
 /* ——— статистика ——— */
@@ -583,13 +585,13 @@ function stats(d){
   const el=$('#statsBody');const C=2*Math.PI*18;
   if(statsTab==='strat'){const S=(d.stats||[]).filter(s=>s.trades>0||s.hired>0);
     el.innerHTML=`<p class="note" style="margin:0 4px 8px">Коя стратегия печели наистина — сбор от всички трейдъри, и от уволнените. Докосни стратегия, за да видиш как работи с прости думи.</p><div class="list">`+(S.map(s=>{const wr=s.winRate||0;const I=SI[s.k]||{};return `<button type="button" class="card strat" data-strat="${esc(s.k)}">
-      <svg width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="Успех ${wr}%"><circle cx="23" cy="23" r="18" fill="none" stroke="#2C2748" stroke-width="5"/><circle cx="23" cy="23" r="18" fill="none" stroke="${col(s.pnl)}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C*wr/100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 23 23)"/><text x="23" y="27" text-anchor="middle" font-family="Unbounded,sans-serif" font-weight="800" font-size="10" fill="#F4F2FF">${s.winRate==null?'—':wr+'%'}</text></svg>
+      <svg width="46" height="46" viewBox="0 0 46 46" role="img" aria-label="Успех ${wr}%"><circle cx="23" cy="23" r="18" fill="none" stroke="#E5E7EB" stroke-width="5"/><circle cx="23" cy="23" r="18" fill="none" stroke="${col(s.pnl)}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(C*wr/100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 23 23)"/><text x="23" y="27" text-anchor="middle" font-family="Manrope,sans-serif" font-weight="800" font-size="10" fill="#0E1116">${s.winRate==null?'—':wr+'%'}</text></svg>
       <span style="min-width:0"><b>${esc(s.style)}</b>${s.tech?`<div class="tg">по учебник: ${esc(s.tech)}</div>`:''}<div class="s">${s.trades?`${s.wins} от ${s.trades} на печалба`:'още без сделки'} · уволнени ${s.fired}</div><div class="go">Как работи ›</div></span>
       <span class="r"><b class="d ${cls(s.pnl)}" style="font-size:14px">${money0(s.pnl,true)}</b><span class="s">средно ${pct(s.avgPct)}</span></span></button>`}).join('')||'<div class="empty">Статистиката ще се появи след първите сделки.</div>')+`</div>`+realNote(d)}
-  else{const R=d.records||{};const card=(k,v,s,c)=>`<div class="card"><span class="mut" style="font-size:10.5px;font-weight:800;letter-spacing:.1em">${k}</span><span class="v" style="color:${c||'#F4F2FF'}">${v}</span><span class="mut" style="font-size:12px">${s}</span></div>`;
+  else{const R=d.records||{};const card=(k,v,s,c)=>`<div class="card"><span class="mut" style="font-size:10.5px;font-weight:800;letter-spacing:.1em">${k}</span><span class="v" style="color:${c||'#0E1116'}">${v}</span><span class="mut" style="font-size:12px">${s}</span></div>`;
     el.innerHTML='<div class="recs">'+[
-      R.best?card('НАЙ-ДОБРА СДЕЛКА',pct(R.best.pct),`${esc(R.best.name)} · ${esc(R.best.sym)} · ${money0(R.best.pnl,true)}`,'#D4FF3A'):card('НАЙ-ДОБРА СДЕЛКА','—','още няма'),
-      R.worst?card('НАЙ-ЛОША СДЕЛКА',pct(R.worst.pct),`${esc(R.worst.name)} · ${esc(R.worst.sym)} · ${money0(R.worst.pnl,true)}`,'#FF3D8B'):card('НАЙ-ЛОША СДЕЛКА','—','още няма'),
+      R.best?card('НАЙ-ДОБРА СДЕЛКА',pct(R.best.pct),`${esc(R.best.name)} · ${esc(R.best.sym)} · ${money0(R.best.pnl,true)}`,'#00A35C'):card('НАЙ-ДОБРА СДЕЛКА','—','още няма'),
+      R.worst?card('НАЙ-ЛОША СДЕЛКА',pct(R.worst.pct),`${esc(R.worst.name)} · ${esc(R.worst.sym)} · ${money0(R.worst.pnl,true)}`,'#E5484D'):card('НАЙ-ЛОША СДЕЛКА','—','още няма'),
       R.survivor?card('НАЙ-ДЪЛГО ОЦЕЛЯЛ',dur(R.survivor.ms),`${esc(R.survivor.name)}${R.survivor.alive?' · още е тук':' · уволнен'}`):card('НАЙ-ДЪЛГО ОЦЕЛЯЛ','—',''),
       R.most?card('НАЙ-МНОГО СДЕЛКИ ДНЕС',String(R.most.n),esc(R.most.name)):card('НАЙ-МНОГО СДЕЛКИ ДНЕС','—',''),
       R.bestDay?card('НАЙ-ДОБЪР ДЕН',money0(R.bestDay.pnl,true),'отборът · '+esc(R.bestDay.d.slice(8,10)+'.'+R.bestDay.d.slice(5,7)),col(R.bestDay.pnl)):card('НАЙ-ДОБЪР ДЕН','—','след първия завършен ден'),
@@ -615,7 +617,7 @@ function firedV(d){
 }
 function realNote(d){return `<div class="card real"><b class="d" style="font-size:12px;letter-spacing:.06em">КАТО С ИСТИНСКИ ПАРИ</b><ul>
   <li>Купува на следващата минута след сигнала с лимитна поръчка — ако цената избяга, не купува.</li>
-  <li>Всеки започва с $${d.startCash}. Брокерът е без комисиона (като Trading 212 или Alpaca) — плаща спреда и регулаторните такси на SEC/FINRA при продажба.</li>
+  <li>Всеки започва с ${money0(d.startCash)}. Класирането е по процент — важно е колко добре търгува, не колко пари има. Брокерът е без комисиона (като Trading 212 или Alpaca) — плаща спреда и регулаторните такси на SEC/FINRA при продажба.</li>
   <li>Не купува повече от 10% от минутния обем; в премаркета стоповете не се задействат сами.</li>
   <li>Ако борсата спре акцията (halt), не може да продаде, докато не я пуснат — дори да е в края на деня. Списъкът със спрените акции е официалният на Nasdaq, в реално време.</li>
   <li>Уволнение: ${d.strikesToFire} поредни загуби (или ако остане без пари за сделка). На мястото му идва нов трейдър със своя, различна стратегия. Търгуват 11:00–22:55 българско време.</li></ul></div>`}
@@ -649,7 +651,7 @@ function stratPage(){
   pg.innerHTML=`<div class="wrap">
     <div class="ph"><button class="back" type="button" data-close="s" aria-label="Назад">${BACK}</button><span class="pt"><b>${esc(name)}</b><span style="color:var(--muted)">${S.tech?'по учебник: '+esc(S.tech):'Стратегия'}</span></span></div>
     <div class="hero2"><small>ИДЕЯТА</small><p>${esc(I.idea||'')}</p></div>
-    ${I.ex?`<div class="card" style="margin-top:12px;font-size:14px;line-height:1.5"><b class="d" style="font-size:10.5px;letter-spacing:.12em;color:#3DD9FF;display:block;margin-bottom:4px">ПРИМЕР</b>${esc(I.ex)}</div>`:''}
+    ${I.ex?`<div class="card" style="margin-top:12px;font-size:14px;line-height:1.5"><b class="d" style="font-size:10.5px;letter-spacing:.12em;color:#2F5BEA;display:block;margin-bottom:4px">ПРИМЕР</b>${esc(I.ex)}</div>`:''}
     <div class="h"><b>Как купува — стъпка по стъпка</b></div>
     <ol class="howl">${(I.how||[]).map(x=>`<li><span>${esc(x)}</span></li>`).join('')}</ol>
     <div class="h"><b>Как продава</b></div>
@@ -688,11 +690,11 @@ let pushMsg='';
 function pushBox(){
   if(!pushOK)return `<div class="card" style="margin:6px 0 12px;font-size:13.5px">${isIOS&&!standalone?'На iPhone известията работят само ако приложението е добавено на началния екран: натисни <b>Сподели</b> → <b>„Добави към началния екран“</b> и го отвори от иконката.':'Този браузър не поддържа известия. Отвори приложението в Chrome.'}</div>`;
   if(!pushSub)return `<div class="card" style="margin:6px 0 12px;display:flex;flex-direction:column;gap:10px"><b class="d" style="font-size:13px">Известия на телефона</b><span class="mut" style="font-size:13px">Всяка покупка и продажба (с процента), уволнения, нови трейдъри и обобщение в края на деня — като съобщение на телефона, дори когато приложението е затворено.</span>
-    <button type="button" id="pushOn" ${pushBusy?'disabled':''} style="height:46px;border:0;border-radius:14px;background:var(--accent);color:var(--bg);font-weight:800;font-size:14px">${pushBusy?'Включвам…':'🔔 Включи известията'}</button>${pushMsg?`<span style="font-size:12.5px;color:#FFD23F">${esc(pushMsg)}</span>`:''}</div>`;
-  const row=(k,l,sub)=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2);cursor:pointer"><span style="flex:1"><b style="font-size:14px">${l}</b>${sub?`<span class="mut" style="display:block;font-size:12px">${sub}</span>`:''}</span><input type="checkbox" data-pp="${k}" ${pushPrefs[k]?'checked':''} style="width:22px;height:22px;accent-color:#D4FF3A"></label>`;
+    <button type="button" id="pushOn" ${pushBusy?'disabled':''} style="height:46px;border:0;border-radius:14px;background:var(--accent);color:var(--bg);font-weight:800;font-size:14px">${pushBusy?'Включвам…':'🔔 Включи известията'}</button>${pushMsg?`<span style="font-size:12.5px;color:#D99A00">${esc(pushMsg)}</span>`:''}</div>`;
+  const row=(k,l,sub)=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2);cursor:pointer"><span style="flex:1"><b style="font-size:14px">${l}</b>${sub?`<span class="mut" style="display:block;font-size:12px">${sub}</span>`:''}</span><input type="checkbox" data-pp="${k}" ${pushPrefs[k]?'checked':''} style="width:22px;height:22px;accent-color:#00A35C"></label>`;
   return `<div class="card" style="margin:6px 0 12px"><b class="d" style="font-size:13px">Известия на телефона · включени ✓</b>
     ${row('buy','🟢 Покупки','„Акулата купи 1 769 акции OOOO по $2,85“')}${row('sell','✅❌ Продажби','с процента и сумата: „+5,40% · +$412“')}${row('fired','🔥 Уволнения и нови трейдъри','')}${row('summary','📊 Обобщение в края на деня','')}${row('favOnly','★ Само за трейдърите, които следя','обобщението идва винаги')}
-    <span style="display:flex;gap:8px;margin-top:10px"><button type="button" id="pushTest" style="flex:1;height:40px;border:1px solid var(--line);border-radius:12px;background:var(--raise);font-weight:800">Пробно известие</button><button type="button" id="pushOff" style="height:40px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:none;color:var(--muted);font-weight:800">Изключи</button></span>${pushMsg?`<span style="display:block;font-size:12.5px;color:#FFD23F;margin-top:8px">${esc(pushMsg)}</span>`:''}</div>`;
+    <span style="display:flex;gap:8px;margin-top:10px"><button type="button" id="pushTest" style="flex:1;height:40px;border:1px solid var(--line);border-radius:12px;background:var(--raise);font-weight:800">Пробно известие</button><button type="button" id="pushOff" style="height:40px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:none;color:var(--muted);font-weight:800">Изключи</button></span>${pushMsg?`<span style="display:block;font-size:12.5px;color:#D99A00;margin-top:8px">${esc(pushMsg)}</span>`:''}</div>`;
 }
 function renderNotif(){const it=notifItems(D||{feed:[]});$('#notifBox').innerHTML=`<div class="grab"></div><b class="d" style="font-size:16px">Известия</b>`+pushBox()+`<p class="mut" style="font-size:12.5px;margin:4px 0 8px">В приложението: уволнения, нови трейдъри, сделки над ±5% и всичко на трейдърите, които следиш ★.</p>`+(it.map(e=>evRow(e,true)).join('')||'<div class="empty">Няма известия.</div>')}
 $('#bell').onclick=async()=>{pushMsg='';await pushRefresh();renderNotif();$('#notif').hidden=false;const it=notifItems(D||{feed:[]});if(it[0]){notifSeen=it[0].t;LS.set('fu-notif',notifSeen)}if(D)bell(D)};
@@ -716,26 +718,26 @@ function traderPage2(refresh){
   const tt=b.trades||[],today=tt.filter(t=>t.out>=ss);
   const avgP=tt.length?tt.reduce((a,t)=>a+t.pct,0)/tt.length:null,avgH=tt.length?Math.round(tt.reduce((a,t)=>a+(t.out-t.in),0)/tt.length/60000):null;
   const r1=b.strikes/D.strikesToFire,r2=D.ddFire>0?Math.min(1,b.dd/D.ddFire):0,r3=D.loserTrades>0&&b.total<0?Math.min(1,(b.wins+b.losses)/D.loserTrades):0;
-  const rc=v=>v>=.67?'#FF3D8B':v>=.34?'#FFD23F':'#D4FF3A';
+  const rc=v=>v>=.67?'#E5484D':v>=.34?'#D99A00':'#00A35C';
   pg.innerHTML=`<div class="glowtop" style="--gl:${b.color}55"></div><div class="wrap" style="position:relative">
     <div class="ph"><button class="back" type="button" data-close="t" aria-label="Назад">${BACK}</button><span class="av pav" style="--c:${b.color};--glc:${b.color}88">${esc(initials(b.name))}</span>
       <span class="pt"><b>${esc(b.name)}</b><span>№${i+1} · ${esc(b.style)} · нает преди ${dur(now()-b.hiredAt)}</span></span>
-      <button class="star icb" type="button" data-star="${b.id}" aria-pressed="${fav}" aria-label="Следи ${esc(b.name)}" style="background:rgba(13,11,26,.45)">${STAR}</button></div>
+      <button class="star icb" type="button" data-star="${b.id}" aria-pressed="${fav}" aria-label="Следи ${esc(b.name)}" style="background:rgba(245,246,248,.45)">${STAR}</button></div>
     <div class="cap"><span class="l"><small id="tcLbl">Капитал</small><b class="num" id="tcVal">${money(b.equity)}</b><i id="tcChg" class="${cls(b.today)}">${money(b.today,true)} · ${pct(b.todayPct)} днес</i></span>
-      <span class="lives"><small>ЖИВОТИ</small><span>${Array.from({length:D.strikesToFire},(_,k)=>HEART(k<lives?'#FF3D8B':'#2C2748')).join('')}</span></span></div>
+      <span class="lives"><small>ЖИВОТИ</small><span>${Array.from({length:D.strikesToFire},(_,k)=>HEART(k<lives?'#E5484D':'#E5E7EB')).join('')}</span></span></div>
     <canvas class="chart" id="tChart" style="height:170px;margin-top:8px" aria-label="Парите на трейдъра с B и S"></canvas>
     <div class="ctool" style="justify-content:flex-start;align-items:center"><span class="seg"><button type="button" data-ttf="1h" aria-pressed="${tTf==='1h'}">1Ч</button><button type="button" data-ttf="1d" aria-pressed="${tTf==='1d'}">1Д</button><button type="button" data-ttf="all" aria-pressed="${tTf==='all'}">ВСИЧКО</button></span><span class="legend">B купи · S продаде · плъзни</span></div>
     ${b.positions.map(p=>{const fr=Math.max(0,Math.min(1,(p.now-p.stop)/((p.tp-p.stop)||1)));return `<button class="posc" type="button" data-trade="pos:${esc(p.sym)}">
-      <span class="r1"><span class="dot"></span><span class="t"><b>В сделка: ${esc(p.sym)} · ${p.qty.toLocaleString('bg-BG')} акции</b><span>${p.halted?`<b style="color:#FFD23F">⏸ Спряна от борсата (${esc(p.halted)}) — не може да продаде</b>`:`вход ${px(p.entry)} · сега ${px(p.now)} · ${dur(now()-p.t)}${p.exiting?' · продава':''}`}</span></span>
+      <span class="r1"><span class="dot"></span><span class="t"><b>В сделка: ${esc(p.sym)} · ${p.qty.toLocaleString('bg-BG')} акции</b><span>${p.halted?`<b style="color:#D99A00">⏸ Спряна от борсата (${esc(p.halted)}) — не може да продаде</b>`:`вход ${px(p.entry)} · сега ${px(p.now)} · ${dur(now()-p.t)}${p.exiting?' · продава':''}`}</span></span>
       <span class="r"><b class="d ${cls(p.pnl)}" style="font-size:13px">${pct(p.pct)}</b><span class="${cls(p.pnl)}" style="font-size:12px;font-weight:700">${money(p.pnl,true)}</span></span></span>
-      <span class="meter"><i style="left:${(fr*100).toFixed(1)}%"></i></span><span class="ml"><span class="down">стоп ${px(p.stop)}</span><span style="color:#3DD9FF">Отвори графиката ›</span><span class="up">цел ${px(p.tp)}</span></span></button>`}).join('')}
+      <span class="meter"><i style="left:${(fr*100).toFixed(1)}%"></i></span><span class="ml"><span class="down">стоп ${px(p.stop)}</span><span style="color:#2F5BEA">Отвори графиката ›</span><span class="up">цел ${px(p.tp)}</span></span></button>`}).join('')}
     ${b.pending?`<div class="pend">Чака да купи <b>${esc(b.pending.s)}</b> с лимитна поръчка до <b>${px(b.pending.limit)}</b> — изпълнява се на следващата минута, ако цената не избяга.</div>`:''}
     <div class="seg big" style="margin-top:18px"><button type="button" data-ttab="trades" aria-pressed="${tTab==='trades'}">Сделки</button><button type="button" data-ttab="strat" aria-pressed="${tTab==='strat'}">Стратегия</button><button type="button" data-ttab="risk" aria-pressed="${tTab==='risk'}">Риск</button></div>
     <div class="list" style="margin-top:10px">${tTab==='trades'?(tt.length?tt.map((t,k)=>`<button class="tr" type="button" data-trade="t:${k}">
-        <span class="bs"><i style="background:#D4FF3A">B</i><em></em><i style="background:#FF3D8B">S</i></span>
+        <span class="bs"><i style="background:#00A35C">B</i><em></em><i style="background:#E5484D">S</i></span>
         <span class="m"><b>${esc(t.sym)} <small>· ${WHYT[t.why]||''}</small></b><span>${t.out<ss?nyDate(t.out)+' ':''}${nyTime(t.in)}→${nyTime(t.out)} · ${t.qty.toLocaleString('bg-BG')} бр. · ${px(t.entry)} → ${px(t.exit)}</span></span>
         <span class="r"><b class="${cls(t.pnl)}">${pct(t.pct)}</b><span class="${cls(t.pnl)}">${money(t.pnl,true)}</span></span></button>`).join(''):'<div class="empty">Още няма сделки.</div>')
-      :tTab==='strat'?`<div class="card" style="display:flex;flex-direction:column;gap:12px"><button type="button" class="lnk" data-strat="${esc(b.strat)}" style="background:none;border:0;padding:0;text-align:left;color:#3DD9FF;font-weight:800;font-size:13px">Как работи „${esc(b.style)}“ с прости думи ›</button>${(SI[b.strat]||b.desc).idea?`<span class="rule"><b style="color:#FFD23F">ИДЕЯТА</b><span>${esc((SI[b.strat]||b.desc).idea)}</span></span>`:''}<span class="rule"><b class="up">КУПУВА</b><span>${esc(b.desc.buy.replace(/^Купува, когато /,'Когато '))}</span></span><span class="rule"><b class="down">ПРОДАВА</b><span>${esc(b.desc.sell)}</span></span><span class="rule"><b style="color:#3DD9FF">ПАРИ</b><span>${esc(b.desc.size)}</span></span>
+      :tTab==='strat'?`<div class="card" style="display:flex;flex-direction:column;gap:12px"><button type="button" class="lnk" data-strat="${esc(b.strat)}" style="background:none;border:0;padding:0;text-align:left;color:#2F5BEA;font-weight:800;font-size:13px">Как работи „${esc(b.style)}“ с прости думи ›</button>${(SI[b.strat]||b.desc).idea?`<span class="rule"><b style="color:#D99A00">ИДЕЯТА</b><span>${esc((SI[b.strat]||b.desc).idea)}</span></span>`:''}<span class="rule"><b class="up">КУПУВА</b><span>${esc(b.desc.buy.replace(/^Купува, когато /,'Когато '))}</span></span><span class="rule"><b class="down">ПРОДАВА</b><span>${esc(b.desc.sell)}</span></span><span class="rule"><b style="color:#2F5BEA">ПАРИ</b><span>${esc(b.desc.size)}</span></span>
         <span class="chips"><span>Успех ${b.winRate==null?'—':`${b.winRate}% (${b.won} от ${b.closed})`}</span><span>Средно ${pct(b.avgPct)}</span><span>Държи ${b.avgHold==null?'—':b.avgHold+' мин'}</span><span>Такси ${money(b.fees||0)}</span><span>Днес ${today.length} сделки</span></span></div>`
       :`<div class="card rk2" style="gap:14px">${[['Поредни загуби',`${b.strikes} от ${D.strikesToFire}`,r1],D.ddFire>0?['Спад от върха',`${b.dd.toFixed(1).replace('.',',')}% от ${D.ddFire}%`,r2]:null,D.loserTrades>0?['На минус след сделки',b.total<0?`${b.wins+b.losses} от ${D.loserTrades}`:'на плюс е',r3]:null].filter(Boolean).map(([l,v,f])=>`<span class="rk2"><span class="a"><span>${l}</span><b>${v}</b></span><span class="b"><i style="width:${Math.round(f*100)}%;background:${rc(f)}"></i></span></span>`).join('')}<span class="mut" style="font-size:12px">Уволнява се при ${D.strikesToFire} поредни загуби (или ако остане без пари за сделка).</span></div>`}</div>
   </div>`;
@@ -755,28 +757,28 @@ function openTrade(sel){tradeSel=sel;cRange='near';pushPage('#pTrade');tradePage
 function closeTrade(){tradeSel=null;$('#pTrade').hidden=true;if(!traderId)document.body.style.overflow=''}
 function candles(cv,d,o,hx){
   const c=setupCv(cv);if(!c)return;const {x,w,h}=c;cv._c={d,o};
-  if(!d||!d.bars||!d.bars.length){x.fillStyle='#A39DC2';x.font='600 12px Onest';x.textAlign='center';x.fillText(d===false?'Зарежда графиката…':'Няма данни за графиката в момента',w/2,h/2);return}
+  if(!d||!d.bars||!d.bars.length){x.fillStyle='#6B7280';x.font='600 12px Manrope, system-ui, sans-serif';x.textAlign='center';x.fillText(d===false?'Зарежда графиката…':'Няма данни за графиката в момента',w/2,h/2);return}
   let pv=0,vv=0;const vw=d.bars.map(b=>{const tp=(b[2]+b[3]+b[4])/3;pv+=tp*b[5];vv+=b[5];return vv?pv/vv:b[4]});
   const lastT=d.bars[d.bars.length-1][0];let from,to;if(cRange==='day'){from=d.bars[0][0];to=lastT}else if(cRange==='1h'){to=o.to?Math.min(lastT,o.to):lastT;from=to-60*60000}else{from=o.from||d.bars[0][0];to=o.to||lastT}
   let idx=d.bars.map((b,i)=>i).filter(i=>d.bars[i][0]>=from&&d.bars[i][0]<=to);if(idx.length<8)idx=d.bars.map((b,i)=>i).slice(-60);
   const B=idx.map(i=>d.bars[i]);const RW=56,VH=h*.15,PH=h-VH-18;
   let mn=Math.min(...B.map(b=>b[3])),mx=Math.max(...B.map(b=>b[2]));for(const v of [o.entry,o.stop,o.tp,o.exit])if(v){mn=Math.min(mn,v);mx=Math.max(mx,v)}const pad=(mx-mn)*.08||mx*.01;mn-=pad;mx+=pad;
   const cw=(w-RW)/B.length,X=i=>i*cw+cw/2,Y=v=>6+(mx-v)/(mx-mn)*(PH-10);
-  x.font='700 9.5px JetBrains Mono';x.textAlign='left';for(let k=0;k<5;k++){const v=mn+(mx-mn)*(k+.5)/5,yy=Y(v);x.strokeStyle='rgba(244,242,255,.05)';x.lineWidth=1;x.beginPath();x.moveTo(0,yy);x.lineTo(w-RW,yy);x.stroke();x.fillStyle='rgba(163,157,194,.75)';x.fillText(px(v),w-RW+4,yy+3)}
-  const vmax=Math.max(...B.map(b=>b[5]))||1;B.forEach((b,i)=>{const up=b[4]>=b[1];x.fillStyle=up?'rgba(212,255,58,.25)':'rgba(255,61,139,.25)';const vh=b[5]/vmax*VH;x.fillRect(X(i)-Math.max(1,cw*.35),h-18-vh,Math.max(1.5,cw*.7),vh)});
-  if(cMode==='line'){const path=()=>{x.beginPath();B.forEach((b,i)=>i?x.lineTo(X(i),Y(b[4])):x.moveTo(X(i),Y(b[4])))};x.strokeStyle='#D4FF3A';path();x.globalAlpha=.18;x.lineWidth=6;x.stroke();x.globalAlpha=1;path();x.lineWidth=2.2;x.lineJoin='round';x.stroke()}
-  else B.forEach((b,i)=>{const up=b[4]>=b[1];const c2=up?'#D4FF3A':'#FF3D8B';x.strokeStyle=c2;x.lineWidth=1;x.beginPath();x.moveTo(X(i),Y(b[2]));x.lineTo(X(i),Y(b[3]));x.stroke();const y1=Y(Math.max(b[1],b[4])),y2=Y(Math.min(b[1],b[4]));x.fillStyle=c2;x.fillRect(X(i)-Math.max(.8,cw*.32),y1,Math.max(1.6,cw*.64),Math.max(1,y2-y1))});
-  x.beginPath();idx.forEach((gi,i)=>{const y=Y(vw[gi]);i?x.lineTo(X(i),y):x.moveTo(X(i),y)});x.strokeStyle='rgba(183,148,246,.8)';x.lineWidth=1.3;x.stroke();
-  const f2=v=>v<1?v.toFixed(3):v.toFixed(2);const tags=[[o.tp,'#D4FF3A',[5,4],'цел '],[o.entry,'#F4F2FF',[],'вход '],[o.stop,'#FF3D8B',[5,4],'стоп ']].filter(t=>t[0]).map(t=>({v:t[0],c:t[1],d:t[2],l:t[3]+f2(t[0]),y:Y(t[0])}));
+  x.font='700 9.5px "JetBrains Mono", ui-monospace, monospace';x.textAlign='left';for(let k=0;k<5;k++){const v=mn+(mx-mn)*(k+.5)/5,yy=Y(v);x.strokeStyle='rgba(14,17,22,.05)';x.lineWidth=1;x.beginPath();x.moveTo(0,yy);x.lineTo(w-RW,yy);x.stroke();x.fillStyle='rgba(107,114,128,.75)';x.fillText(px(v),w-RW+4,yy+3)}
+  const vmax=Math.max(...B.map(b=>b[5]))||1;B.forEach((b,i)=>{const up=b[4]>=b[1];x.fillStyle=up?'rgba(0,163,92,.25)':'rgba(229,72,77,.25)';const vh=b[5]/vmax*VH;x.fillRect(X(i)-Math.max(1,cw*.35),h-18-vh,Math.max(1.5,cw*.7),vh)});
+  if(cMode==='line'){const path=()=>{x.beginPath();B.forEach((b,i)=>i?x.lineTo(X(i),Y(b[4])):x.moveTo(X(i),Y(b[4])))};x.strokeStyle='#00A35C';path();x.globalAlpha=.18;x.lineWidth=6;x.stroke();x.globalAlpha=1;path();x.lineWidth=2.2;x.lineJoin='round';x.stroke()}
+  else B.forEach((b,i)=>{const up=b[4]>=b[1];const c2=up?'#00A35C':'#E5484D';x.strokeStyle=c2;x.lineWidth=1;x.beginPath();x.moveTo(X(i),Y(b[2]));x.lineTo(X(i),Y(b[3]));x.stroke();const y1=Y(Math.max(b[1],b[4])),y2=Y(Math.min(b[1],b[4]));x.fillStyle=c2;x.fillRect(X(i)-Math.max(.8,cw*.32),y1,Math.max(1.6,cw*.64),Math.max(1,y2-y1))});
+  x.beginPath();idx.forEach((gi,i)=>{const y=Y(vw[gi]);i?x.lineTo(X(i),y):x.moveTo(X(i),y)});x.strokeStyle='rgba(109,74,255,.8)';x.lineWidth=1.3;x.stroke();
+  const f2=v=>v<1?v.toFixed(3):v.toFixed(2);const tags=[[o.tp,'#00A35C',[5,4],'цел '],[o.entry,'#0E1116',[],'вход '],[o.stop,'#E5484D',[5,4],'стоп ']].filter(t=>t[0]).map(t=>({v:t[0],c:t[1],d:t[2],l:t[3]+f2(t[0]),y:Y(t[0])}));
   for(const t of tags){x.strokeStyle=t.c;x.lineWidth=1.2;x.setLineDash(t.d);x.beginPath();x.moveTo(0,t.y);x.lineTo(w-RW,t.y);x.stroke();x.setLineDash([])}
   tags.sort((a,b)=>a.y-b.y);for(let k=1;k<tags.length;k++)if(tags[k].ty==null)tags[k].ty=Math.max(tags[k].y,(tags[k-1].ty??tags[k-1].y)+17);if(tags[0])tags[0].ty=tags[0].y;
-  for(const t of tags){const ty=t.ty??t.y;x.fillStyle=t.c;rr(x,w-RW+2,ty-8,RW-3,16,5);x.fill();x.fillStyle='#0D0B1A';x.font='800 9px JetBrains Mono';x.textAlign='center';x.fillText(t.l,w-RW/2,ty+3.2)}
+  for(const t of tags){const ty=t.ty??t.y;x.fillStyle=t.c;rr(x,w-RW+2,ty-8,RW-3,16,5);x.fill();x.fillStyle='#FFFFFF';x.font='800 9px "JetBrains Mono", ui-monospace, monospace';x.textAlign='center';x.fillText(t.l,w-RW/2,ty+3.2)}
   for(const mk of (o.marks||[])){if(mk.t<B[0][0]||mk.t>B[B.length-1][0]+60000)continue;let i=B.findIndex(b=>b[0]>=mk.t);if(i<0)i=B.length-1;const y=Y(mk.p),xx=X(i),by=y+(mk.k==='B'?26:-26);
-    x.strokeStyle=mk.k==='B'?'rgba(212,255,58,.8)':'rgba(255,61,139,.8)';x.lineWidth=1;x.beginPath();x.moveTo(xx,y);x.lineTo(xx,by);x.stroke();x.fillStyle='#F4F2FF';x.beginPath();x.arc(xx,y,2.5,0,7);x.fill();badge(x,xx,by,mk.k,mk.big)}
+    x.strokeStyle=mk.k==='B'?'rgba(0,163,92,.8)':'rgba(229,72,77,.8)';x.lineWidth=1;x.beginPath();x.moveTo(xx,y);x.lineTo(xx,by);x.stroke();x.fillStyle='#0E1116';x.beginPath();x.arc(xx,y,2.5,0,7);x.fill();badge(x,xx,by,mk.k,mk.big)}
   dayMarks(x,B.map(b=>b[0]),X,0,h-18);
-  x.fillStyle='rgba(163,157,194,.85)';x.font='700 10px JetBrains Mono';x.textAlign='left';x.fillText(tlabel(B[0][0]),2,h-4);x.textAlign='right';x.fillText(tlabel(B[B.length-1][0]),w-RW-2,h-4);
-  if(hx!=null){const i=Math.max(0,Math.min(B.length-1,Math.floor(hx/cw)));const b=B[i],xx=X(i),yy=Y(b[4]);x.strokeStyle='rgba(244,242,255,.55)';x.setLineDash([3,3]);x.beginPath();x.moveTo(xx,0);x.lineTo(xx,h-18);x.moveTo(0,yy);x.lineTo(w-RW,yy);x.stroke();x.setLineDash([]);
-    x.fillStyle='#0D0B1A';x.strokeStyle='#F4F2FF';x.lineWidth=3;x.beginPath();x.arc(xx,yy,5,0,7);x.fill();x.stroke();if(o.onHover)o.onHover(b)}else if(o.onHover)o.onHover(null);
+  x.fillStyle='rgba(107,114,128,.85)';x.font='700 10px "JetBrains Mono", ui-monospace, monospace';x.textAlign='left';x.fillText(tlabel(B[0][0]),2,h-4);x.textAlign='right';x.fillText(tlabel(B[B.length-1][0]),w-RW-2,h-4);
+  if(hx!=null){const i=Math.max(0,Math.min(B.length-1,Math.floor(hx/cw)));const b=B[i],xx=X(i),yy=Y(b[4]);x.strokeStyle='rgba(14,17,22,.55)';x.setLineDash([3,3]);x.beginPath();x.moveTo(xx,0);x.lineTo(xx,h-18);x.moveTo(0,yy);x.lineTo(w-RW,yy);x.stroke();x.setLineDash([]);
+    x.fillStyle='#FFFFFF';x.strokeStyle='#0E1116';x.lineWidth=3;x.beginPath();x.arc(xx,yy,5,0,7);x.fill();x.stroke();if(o.onHover)o.onHover(b)}else if(o.onHover)o.onHover(null);
 }
 function tradePage(refresh){
   const b=fb(D&&D.bots.find(x=>x.id===tradeSel.bot));if(b&&!b.trades)return;const pg=$('#pTrade');if(!b){return}
@@ -787,15 +789,15 @@ function tradePage(refresh){
     head={lbl:'Цена сега',price:p.now,ch:(p.now/p.entry-1)*100,net:`${money(p.pnl,true)} след спреда и таксите`,sub:`${esc(b.name)} · отворена ${nyTime(p.t)} · ${dur(N-p.t)}`};
     meter=`<div class="card" style="margin-top:16px;display:flex;flex-direction:column;gap:10px"><span style="display:flex;justify-content:space-between"><b class="d mut" style="font-size:11px;letter-spacing:.12em">МЕЖДУ СТОПА И ЦЕЛТА</b><span class="mut" style="font-size:12px">${Math.round(fr*100)}%</span></span>
       <span class="meter big"><i style="left:${(fr*100).toFixed(1)}%"></i></span><span class="ml"><span class="down">стоп ${px(p.stop)} · ${money0(p.qty*(p.stop-p.entry),true)}</span><span class="up">цел ${px(p.tp)} · ${money0(p.qty*(p.tp-p.entry),true)}</span></span></div>`;
-    steps=[p.sigT?['!','#FFD23F','Сигнал',`${esc(b.style)} даде сигнал за ${esc(sym)}`,p.sigT]:null,p.limit?['→','#3DD9FF','Лимитна поръчка',`Купи до ${px(p.limit)}`,p.sigT||p.t]:null,['B','#D4FF3A',`Изпълнена на ${px(p.entry)}`,`${p.qty.toLocaleString('bg-BG')} бр. · ${money(p.qty*p.entry)} + такса ${money(p.feeIn||0)}`,p.t],p.halted?['⏸','#FFD23F','Борсата спря търговията (halt)',`Причина: ${esc(p.halted)}. Докато е спряна, никой не може да купува или продава — продава веднага щом я пуснат.`,N]:['•','#F4F2FF',p.exiting?'Продава на следващата минута':'Сега в сделката',`Цел ${px(p.tp)}, стоп ${px(p.stop)} или до ${nyTime(p.holdUntil)}`,N]].filter(Boolean);
+    steps=[p.sigT?['!','#D99A00','Сигнал',`${esc(b.style)} даде сигнал за ${esc(sym)}`,p.sigT]:null,p.limit?['→','#2F5BEA','Лимитна поръчка',`Купи до ${px(p.limit)}`,p.sigT||p.t]:null,['B','#00A35C',`Изпълнена на ${px(p.entry)}`,`${p.qty.toLocaleString('bg-BG')} бр. · ${money(p.qty*p.entry)} + такса ${money(p.feeIn||0)}`,p.t],p.halted?['⏸','#D99A00','Борсата спря търговията (halt)',`Причина: ${esc(p.halted)}. Докато е спряна, никой не може да купува или продава — продава веднага щом я пуснат.`,N]:['•','#0E1116',p.exiting?'Продава на следващата минута':'Сега в сделката',`Цел ${px(p.tp)}, стоп ${px(p.stop)} или до ${nyTime(p.holdUntil)}`,N]].filter(Boolean);
     tiles=[['АКЦИИ',p.qty.toLocaleString('bg-BG'),''],['ВХОД',px(p.entry),''],['СЕГА',px(p.now),''],['ТАКСИ',money(p.feeIn||0)+'+',''],['РЕЗУЛТАТ',pct(p.pct),cls(p.pnl)],['ВРЕМЕ',`${Math.round((N-p.t)/60000)} / ${b.hold} мин`,'']];}
   else{const t=b.trades[tradeSel.i];if(!t)return;sym=t.sym;const ss=D.session?D.session.start:0;if(t.out<ss)rg={from:t.in-90*60000,to:t.out+60*60000};
     o={entry:t.entry,stop:t.stop,tp:t.tp,exit:t.exit,from:t.in-30*60000,to:t.out+20*60000,marks:botMarks(b,tradeSel).filter(m=>m.sym===sym)};
     head={lbl:'Изход',price:t.exit,ch:(t.exit/t.entry-1)*100,net:`${money(t.pnl,true)} · ${pct(t.pct)} след таксите`,sub:`${esc(b.name)} · ${t.out<ss?nyDate(t.out)+' ':''}${nyTime(t.in)}→${nyTime(t.out)}`};
-    steps=[t.sigT?['!','#FFD23F','Сигнал',`${esc(b.style)} даде сигнал`,t.sigT]:null,t.limit?['→','#3DD9FF','Лимитна поръчка',`Купи до ${px(t.limit)}`,t.sigT||t.in]:null,['B','#D4FF3A',`Купи на ${px(t.entry)}`,`${t.qty.toLocaleString('bg-BG')} бр. · ${money(t.qty*t.entry)}`,t.in],['S','#FF3D8B',`Продаде на ${px(t.exit)}`,`заради ${WHYT[t.why]||t.why} · такси общо ${money(t.fees||0)}`,t.out]].filter(Boolean);
+    steps=[t.sigT?['!','#D99A00','Сигнал',`${esc(b.style)} даде сигнал`,t.sigT]:null,t.limit?['→','#2F5BEA','Лимитна поръчка',`Купи до ${px(t.limit)}`,t.sigT||t.in]:null,['B','#00A35C',`Купи на ${px(t.entry)}`,`${t.qty.toLocaleString('bg-BG')} бр. · ${money(t.qty*t.entry)}`,t.in],['S','#E5484D',`Продаде на ${px(t.exit)}`,`заради ${WHYT[t.why]||t.why} · такси общо ${money(t.fees||0)}`,t.out]].filter(Boolean);
     tiles=[['АКЦИИ',t.qty.toLocaleString('bg-BG'),''],['ВХОД',px(t.entry),''],['ИЗХОД',px(t.exit),''],['ТАКСИ',money(t.fees||0),''],['РЕЗУЛТАТ',pct(t.pct),cls(t.pnl)],['ДЪРЖА',Math.round((t.out-t.in)/60000)+' мин','']];}
   pg.innerHTML=`<div class="wrap">
-    <div class="ph"><button class="back" type="button" data-close="c" aria-label="Назад">${BACK}</button><span class="pt"><b>${esc(sym)}</b><span style="color:var(--muted)">${head.sub}</span></span><span class="livep${live?'':' closed'}" ${halt?'style="background:#FFD23F"':''}>${halt?'⏸ HALT':live?'НА ЖИВО':'ЗАТВОРЕНА'}</span></div>
+    <div class="ph"><button class="back" type="button" data-close="c" aria-label="Назад">${BACK}</button><span class="pt"><b>${esc(sym)}</b><span style="color:var(--muted)">${head.sub}</span></span><span class="livep${live?'':' closed'}" ${halt?'style="background:#D99A00"':''}>${halt?'⏸ HALT':live?'НА ЖИВО':'ЗАТВОРЕНА'}</span></div>
     <div style="display:flex;flex-direction:column;gap:3px;padding-top:12px"><span class="mut" style="font-size:12.5px;font-weight:700" id="cLbl">${head.lbl}</span>
       <span style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><b class="d num" style="font-size:30px;letter-spacing:-.03em" id="cVal">${px(head.price)}</b><span class="pill${head.ch<0?' neg':''}" id="cChg">${pct(head.ch)} от входа</span></span>
       <span class="${cls(head.ch)}" style="font-size:13px;font-weight:700">${head.net}</span></div>
