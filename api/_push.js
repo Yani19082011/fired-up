@@ -10,8 +10,8 @@ async function kv(cmd) {
   const d = await r.json().catch(() => ({})); if (d.error) throw new Error('kv: ' + d.error); return d.result ?? null;
 }
 const SUBS = 'arena:subs';
-const CATS = ['buy', 'sell', 'fired', 'summary'];
-const DEFAULT_PREFS = { buy: true, sell: true, fired: true, summary: true, favOnly: false, favs: [] };
+const CATS = ['buy', 'sell', 'wait', 'skip', 'fired', 'summary'];
+const DEFAULT_PREFS = { buy: true, sell: true, wait: true, skip: true, fired: true, summary: true, favOnly: false, favs: [] };
 
 async function keys() {
   let k = await kv(['GET', 'arena:vapid']);

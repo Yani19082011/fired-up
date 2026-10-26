@@ -26,15 +26,15 @@ const STRIKES_TO_FIRE = Number(process.env.STRIKES_TO_FIRE || 5);   // увол�
 const DD_FIRE = Number(process.env.DD_FIRE || 0);                   // по желание: % спад от върха (0 = изключено)
 const LOSER_TRADES = Number(process.env.LOSER_TRADES || 0);         // по желание: на минус след толкова сделки (0 = изключено)
 const MIN_ORDER = Math.max(1, START_CASH * 0.05);                   // най-малка поръчка (при $2 000 → $100)
-const PRICE_MIN = 0.5, PRICE_MAX = 5;
+const PRICE_MIN = 1, PRICE_MAX = 20;   // само акции от $1 до $20
 const UNIVERSE_N = Number(process.env.UNIVERSE_N || 24);    // резерва: толкова акции, ако груповата заявка не работи
 const RADAR_N = Number(process.env.RADAR_N || 120);         // радар: толкова акции се сканират всяка минута (с групови заявки)
 const FOCUS_N = Number(process.env.FOCUS_N || 40);          // общо толкова акции на минута (държаните + най-живите от всяка територия) се гледат с пълни минутни свещи
 // територии: всеки трейдър ловува само в своята част от пазара
 const ZONES = {
-  cheap: { name: 'Под $1', txt: 'само акции под $1' },
-  mid: { name: '$1–3', txt: 'само акции между $1 и $3' },
-  upper: { name: '$3–5', txt: 'само акции между $3 и $5' },
+  low: { name: '$1–3', txt: 'само акции между $1 и $3' },
+  mid: { name: '$3–8', txt: 'само акции между $3 и $8' },
+  high: { name: '$8–20', txt: 'само акции между $8 и $20' },
   gainers: { name: 'Най-поскъпналите', txt: 'само акции, поскъпнали с над 15% днес' },
   active: { name: 'Най-търгуваните', txt: 'само 30-те най-търгувани акции на деня' },
   gappers: { name: 'Сутрешен скок', txt: 'само акции, започнали деня с над 8% над вчерашната цена' },
@@ -166,9 +166,9 @@ async function pickRadar() {
 // попада ли акцията в територията (по последните данни)
 function zoneHit(z, m) {
   if (!z || !m) return !z;
-  if (z === 'cheap') return m.px < 1;
-  if (z === 'mid') return m.px >= 1 && m.px < 3;
-  if (z === 'upper') return m.px >= 3;
+  if (z === 'low') return m.px < 3;
+  if (z === 'mid') return m.px >= 3 && m.px < 8;
+  if (z === 'high') return m.px >= 8;
   if (z === 'gainers') return m.chg >= 15;
   if (z === 'active') return (m.vr || 999) <= 30;
   if (z === 'gappers') return (m.gap ?? m.chg) >= 8;
@@ -178,9 +178,9 @@ function zoneHit(z, m) {
 function inZone(z, I, i, m) {
   if (!z) return true;
   const px = I.c[i], pdc = I.ctx && I.ctx.pdc;
-  if (z === 'cheap') return px < 1;
-  if (z === 'mid') return px >= 1 && px < 3;
-  if (z === 'upper') return px >= 3;
+  if (z === 'low') return px < 3;
+  if (z === 'mid') return px >= 3 && px < 8;
+  if (z === 'high') return px >= 8;
   if (z === 'gainers') return pdc ? px / pdc - 1 >= 0.15 : false;
   if (z === 'gappers') { const ri = I.ctx && I.ctx.regIdx; const k = ri != null && ri <= i ? ri : 0; return pdc ? I.o[k] / pdc - 1 >= 0.08 : false; }
   if (z === 'active') return !!m && (m.vr || 999) <= 30;
@@ -399,7 +399,7 @@ function pickGenome(st, also = []) {
   const cnt = Object.fromEntries(KINDS.map(k => [k, 0])); for (const b of st.bots) cnt[b.genome.trigger.t] = (cnt[b.genome.trigger.t] || 0) + 1;
   const min = Math.min(...KINDS.map(k => cnt[k])); let pool = KINDS.filter(k => cnt[k] === min && !also.includes(k)); if (!pool.length) pool = KINDS.filter(k => cnt[k] === min);
   const taken = new Set(st.bots.map(b => gsig(b.genome)));
-  const zc = Object.fromEntries(ZONE_KEYS.map(z => [z, 0])); for (const b of st.bots) if (b.genome.zone) zc[b.genome.zone]++;
+  const zc = Object.fromEntries(ZONE_KEYS.map(z => [z, 0])); for (const b of st.bots) if (zc[b.genome.zone] != null) zc[b.genome.zone]++;
   const zmin = Math.min(...ZONE_KEYS.map(z => zc[z])); const zpool = ZONE_KEYS.filter(z => zc[z] === zmin);
   let g; for (let i = 0; i < 50; i++) { g = newGenome([], R(pool)); g.zone = R(zpool); if (!taken.has(gsig(g))) break; }
   return g;
@@ -569,7 +569,7 @@ async function tick(nowMs = Date.now(), pre = null) {
   st.lastTick = nowMs; st.simMs = nowMs;
   if (st.bots.length < N_BOTS) { const add = N_BOTS - st.bots.length; const names = []; for (let i = 0; i < add; i++) names.push(hire(st, nowMs).name); note(st, 'fired', `🆕 Отборът расте: +${add} трейдъри`, names.join(', '), null); feed(st, nowMs, null, 'hired', `Отборът расте! Назначени са ${add} нови трейдъри: ${names.join(', ')}.`); }
   dedupe(st, nowMs);
-  if (st.bots.some(b => !b.genome.zone)) { st.bots.forEach((b, k) => { if (!b.genome.zone) { b.genome.zone = ZONE_KEYS[k % ZONE_KEYS.length]; b.desc = describe(b.genome); } }); }
+  if (st.bots.some(b => !ZONES[b.genome.zone])) { st.bots.forEach((b, k) => { if (!ZONES[b.genome.zone]) { b.genome.zone = ZONE_KEYS[k % ZONE_KEYS.length]; b.desc = describe(b.genome); } }); }
   if (!st.enNames) { st.enNames = 1; for (const b of st.bots) if (/[А-Яа-я]/.test(b.name)) { const old = b.name; b.name = '·'; b.name = genName(st, b.genome.trigger.t); feed(st, nowMs, b.id, 'info', `${old} вече е ${b.name}.`); } }
   // еднократно: статистиката отпреди реалистичните сделки (без такси и спред) се нулира, за да са процентите истински
   if (st.statsV !== 2) {
@@ -701,7 +701,7 @@ async function tick(nowMs = Date.now(), pre = null) {
       for (const s in IND) {
         if (bot.positions.some(p => p.sym === s) || isHalted(st, s, t)) continue;
         const I = IND[s]; const i = idx[s].get(t); if (i == null) continue;
-        const px = I.c[i]; if (px < PRICE_MIN * 0.8 || px > PRICE_MAX * 1.5) continue;
+        const px = I.c[i]; if (px < PRICE_MIN || px > PRICE_MAX) continue; // под $1 и над $20 не купува
         if (!inZone(g.zone, I, i, st.radarMeta && st.radarMeta[s])) continue;
         if (!sig(g, I, i)) continue;
         const score = I.v[i] / (I.avgV[i - 1] || 1);
@@ -806,4 +806,6 @@ async function tickWithLock(nowMs = Date.now(), minGapMs = 50000) {
   finally { await kv(['DEL', 'arena:lock']); }
 }
 
-module.exports = { tick, tickWithLock, loadState, loadHist, view, kv, yIntraday, alpacaIntraday, yget, ybars, _test: { dedupe, newGenome, describe, indic, sig, etParts, TRIGGERS } };
+module.exports = { tick, tickWithLock, loadState, loadHist, view, kv, yIntraday, alpacaIntraday, yget, ybars,
+  // общи инструменти, които ползва и декът (_desk.js)
+  H: { etParts, yScreen, ySpark, pickRadar, yDaily, dailyCtx, indic, loadHalts, isHalted, HALT_TXT, sellFees, okSym, OTC, PRICE_MIN, PRICE_MAX }, _test: { dedupe, newGenome, describe, indic, sig, etParts, TRIGGERS } };
