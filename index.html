@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up</title>
-<meta name="fu-ver" content="25">
+<meta name="fu-ver" content="26">
 <meta name="theme-color" content="#0D0B1A">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -365,6 +365,7 @@ const LS={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(
 let D=null,tab=LS.get('fu-tab','home'),hTf=LS.get('fu-htf','1d'),basis=LS.get('fu-basis','all'),filt=LS.get('fu-filt','all'),statsTab='strat';
 let favs=new Set(JSON.parse(LS.get('fu-favs','[]')||'[]')),notifSeen=+LS.get('fu-notif',0)||0,seenFired=+LS.get('fu-seen-fired',0)||0,animFired=+LS.get('fu-anim-fired',0)||0;
 let traderId=null,tTf='1d',tTab='trades',tradeSel=null,cMode=LS.get('fu-cmode','candle'),cRange='near';
+let openFromUrl=new URLSearchParams(location.search).get('bot');if(openFromUrl)history.replaceState(null,'','/');
 let lastFetch=0,firstLoad=true,introDone=false,prevToday={},seenFeed=new Set(),boomQ=[],homeDrawn=false;
 if(!['home','feed','stats','fired'].includes(tab))tab='home';
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -385,7 +386,7 @@ const STAR='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-wi
 const BACK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
 const HEART=c=>`<svg viewBox="0 0 24 22" aria-hidden="true"><path fill="${c}" d="M12 21s-9-5.6-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.4-9 12-9 12z"/></svg>`;
 const EVK={buy:['B','#3DD9FF'],win:['S','#D4FF3A'],loss:['S','#FF3D8B'],fired:['!','#FF3D8B'],hired:['+','#3DD9FF'],info:['i','#4B4570']};
-const WHYT={tp:'цел',sl:'стоп',be:'стоп на входа',trail:'плъзгащ стоп',time:'време',rsi:'RSI над 80',vwap:'под VWAP',eod:'край на деня',fired:'уволнение'};
+const WHYT={tp:'цел',sl:'стоп',be:'стоп на входа',trail:'плъзгащ стоп',time:'време',rsi:'прегря',vwap:'под средната цена',eod:'край на деня',fired:'уволнение'};
 
 /* ——— интро ——— */
 (function(){const sp=$('#sparks');if(reduce)return;for(let i=0;i<22;i++){const s=document.createElement('i');const a=Math.random()*Math.PI*2,r=90+Math.random()*170;s.style.setProperty('--x',Math.cos(a)*r+'px');s.style.setProperty('--y',Math.sin(a)*r+'px');s.style.animationDelay=(.5+Math.random()*.25)+'s';sp.appendChild(s)}})();
@@ -402,7 +403,8 @@ async function load(){
   try{const r=await fetch('/api/state',{cache:'no-store'});const d=await r.json();lastFetch=Date.now();
     if(d.error){setup(d.error,d.message);maybeEndIntro();return}$('#setup').hidden=true;D=d;
     if(firstLoad){$('#introSub').textContent=`${d.bots.length} трейдъри · истински цени · без милост`;const iv=$('#introVal');iv.dataset.v=startTotal();countTo(iv,startTotal()+(d.teamTotal||0),v=>money(v),1400)}
-    render();maybeEndIntro()}
+    render();maybeEndIntro();
+    if(openFromUrl&&D.bots.some(b=>b.id===openFromUrl)){const id=openFromUrl;openFromUrl=null;setTimeout(()=>openTrader(id),introDone?0:2800)}}
   catch(e){$('#pillTxt').textContent='НЯМА ВРЪЗКА';maybeEndIntro()}
 }
 function setup(code,msg){
@@ -634,8 +636,38 @@ function stratPage(){
 /* ——— известия ——— */
 function notifItems(d){return d.feed.filter(e=>e.k==='fired'||e.k==='hired'||(e.b&&favs.has(e.b)&&e.k!=='info')||((e.k==='win'||e.k==='loss')&&/\(([+−-]?\d+[,.]?\d*)%/.test(e.x)&&Math.abs(parseFloat((e.x.match(/\(([+−-]?[\d,]+)%/)||[0,'0'])[1].replace('−','-').replace(',','.')))>=5))}
 function bell(d){const n=notifItems(d).filter(e=>e.t>notifSeen).length;$('#bellN').hidden=!n;$('#bellN').textContent=n>9?'9+':n}
-$('#bell').onclick=()=>{const it=notifItems(D||{feed:[]});$('#notifBox').innerHTML=`<div class="grab"></div><b class="d" style="font-size:16px">Известия</b><p class="mut" style="font-size:12.5px;margin:4px 0 8px">Уволнения, нови трейдъри, сделки над ±5% и всичко на трейдърите, които следиш ★.</p>`+(it.map(e=>evRow(e,true)).join('')||'<div class="empty">Няма известия.</div>');
-  $('#notif').hidden=false;if(it[0]){notifSeen=it[0].t;LS.set('fu-notif',notifSeen)}bell(D)};
+/* ——— известия на телефона (push) ——— */
+const pushOK=('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
+const PDEF={buy:true,sell:true,fired:true,summary:true,favOnly:false};
+let pushSub=null,pushPrefs={...PDEF,...JSON.parse(LS.get('fu-pprefs','{}')||'{}')},pushBusy=false;
+const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent),standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+function b64u(u){const p='='.repeat((4-u.length%4)%4);const b=atob((u+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from([...b].map(c=>c.charCodeAt(0)))}
+async function swReg(){let r=await navigator.serviceWorker.getRegistration();if(!r)r=await navigator.serviceWorker.register('/sw.js');return navigator.serviceWorker.ready}
+async function pushRefresh(){if(!pushOK)return;try{const r=await swReg();pushSub=await r.pushManager.getSubscription()}catch(e){}}
+async function pushSave(action){if(!pushSub)return;LS.set('fu-pprefs',JSON.stringify(pushPrefs));
+  const r=await fetch('/api/push',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:action||'prefs',sub:pushSub.toJSON(),prefs:{...pushPrefs,favs:[...favs]}})});if(!r.ok)throw new Error('server')}
+async function pushEnable(){pushBusy=true;renderNotif();try{
+  const perm=await Notification.requestPermission();if(perm!=='granted')throw new Error(perm==='denied'?'denied':'skip');
+  const k=await (await fetch('/api/push')).json();if(!k.key)throw new Error('key');
+  const r=await swReg();pushSub=await r.pushManager.getSubscription()||await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(k.key)});
+  await pushSave('test');pushMsg='Готово! Трябва да ти дойде пробно известие.'}
+  catch(e){pushMsg=e.message==='denied'?'Известията са забранени. Разреши ги от настройките на браузъра/телефона за този сайт и опитай пак.':e.message==='skip'?'Не разреши известията. Натисни пак, за да опиташ.':'Не стана: '+e.message}
+  pushBusy=false;renderNotif()}
+async function pushDisable(){try{if(pushSub){await fetch('/api/push',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'unsubscribe',sub:pushSub.toJSON()})});await pushSub.unsubscribe()}}catch(e){}pushSub=null;pushMsg='Известията са изключени.';renderNotif()}
+let pushMsg='';
+function pushBox(){
+  if(!pushOK)return `<div class="card" style="margin:6px 0 12px;font-size:13.5px">${isIOS&&!standalone?'На iPhone известията работят само ако приложението е добавено на началния екран: натисни <b>Сподели</b> → <b>„Добави към началния екран“</b> и го отвори от иконката.':'Този браузър не поддържа известия. Отвори приложението в Chrome.'}</div>`;
+  if(!pushSub)return `<div class="card" style="margin:6px 0 12px;display:flex;flex-direction:column;gap:10px"><b class="d" style="font-size:13px">Известия на телефона</b><span class="mut" style="font-size:13px">Всяка покупка и продажба (с процента), уволнения, нови трейдъри и обобщение в края на деня — като съобщение на телефона, дори когато приложението е затворено.</span>
+    <button type="button" id="pushOn" ${pushBusy?'disabled':''} style="height:46px;border:0;border-radius:14px;background:var(--accent);color:var(--bg);font-weight:800;font-size:14px">${pushBusy?'Включвам…':'🔔 Включи известията'}</button>${pushMsg?`<span style="font-size:12.5px;color:#FFD23F">${esc(pushMsg)}</span>`:''}</div>`;
+  const row=(k,l,sub)=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2);cursor:pointer"><span style="flex:1"><b style="font-size:14px">${l}</b>${sub?`<span class="mut" style="display:block;font-size:12px">${sub}</span>`:''}</span><input type="checkbox" data-pp="${k}" ${pushPrefs[k]?'checked':''} style="width:22px;height:22px;accent-color:#D4FF3A"></label>`;
+  return `<div class="card" style="margin:6px 0 12px"><b class="d" style="font-size:13px">Известия на телефона · включени ✓</b>
+    ${row('buy','🟢 Покупки','„Акулата купи 1 769 акции OOOO по $2,85“')}${row('sell','✅❌ Продажби','с процента и сумата: „+5,40% · +$412“')}${row('fired','🔥 Уволнения и нови трейдъри','')}${row('summary','📊 Обобщение в края на деня','')}${row('favOnly','★ Само за трейдърите, които следя','обобщението идва винаги')}
+    <span style="display:flex;gap:8px;margin-top:10px"><button type="button" id="pushTest" style="flex:1;height:40px;border:1px solid var(--line);border-radius:12px;background:var(--raise);font-weight:800">Пробно известие</button><button type="button" id="pushOff" style="height:40px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:none;color:var(--muted);font-weight:800">Изключи</button></span>${pushMsg?`<span style="display:block;font-size:12.5px;color:#FFD23F;margin-top:8px">${esc(pushMsg)}</span>`:''}</div>`;
+}
+function renderNotif(){const it=notifItems(D||{feed:[]});$('#notifBox').innerHTML=`<div class="grab"></div><b class="d" style="font-size:16px">Известия</b>`+pushBox()+`<p class="mut" style="font-size:12.5px;margin:4px 0 8px">В приложението: уволнения, нови трейдъри, сделки над ±5% и всичко на трейдърите, които следиш ★.</p>`+(it.map(e=>evRow(e,true)).join('')||'<div class="empty">Няма известия.</div>')}
+$('#bell').onclick=async()=>{pushMsg='';await pushRefresh();renderNotif();$('#notif').hidden=false;const it=notifItems(D||{feed:[]});if(it[0]){notifSeen=it[0].t;LS.set('fu-notif',notifSeen)}if(D)bell(D)};
+$('#notifBox').addEventListener('click',e=>{if(e.target.closest('#pushOn'))pushEnable();else if(e.target.closest('#pushOff'))pushDisable();else if(e.target.closest('#pushTest')){pushMsg='Изпратено — ще дойде след секунди.';pushSave('test').catch(()=>{pushMsg='Не стана.'}).then(renderNotif)}});
+$('#notifBox').addEventListener('change',e=>{const c=e.target.closest('[data-pp]');if(!c)return;pushPrefs[c.dataset.pp]=c.checked;pushSave().catch(()=>{})});
 $('#notif').onclick=e=>{if(e.target.id==='notif'||e.target.classList.contains('grab'))$('#notif').hidden=true};
 
 /* ——— страница на трейдъра ——— */
@@ -757,7 +789,7 @@ $('#boom').onclick=()=>{clearTimeout($('#boom')._t);nextBoom()};
 function setTab(t){tab=t;LS.set('fu-tab',tab);homeDrawn=false;if(D)render();scrollTo({top:0,behavior:reduce?'auto':'smooth'})}
 $('#tabs').onclick=e=>{const b=e.target.closest('button');if(b)setTab(b.dataset.v)};
 document.addEventListener('click',e=>{const t=e.target;
-  const star=t.closest('[data-star]');if(star){const id=star.dataset.star;favs.has(id)?favs.delete(id):favs.add(id);LS.set('fu-favs',JSON.stringify([...favs]));star.setAttribute('aria-pressed',favs.has(id));if(filt==='fav'&&D)rows(D);if(D)bell(D);return}
+  const star=t.closest('[data-star]');if(star){const id=star.dataset.star;favs.has(id)?favs.delete(id):favs.add(id);LS.set('fu-favs',JSON.stringify([...favs]));if(pushSub)pushSave().catch(()=>{});star.setAttribute('aria-pressed',favs.has(id));if(filt==='fav'&&D)rows(D);if(D)bell(D);return}
   const op=t.closest('[data-open]');if(op){openTrader(op.dataset.open);return}
   if(t.closest('#mvp')){openTrader($('#mvp').dataset.id);return}
   const go=t.closest('[data-go]');if(go){setTab(go.dataset.go);return}
@@ -775,6 +807,8 @@ document.addEventListener('click',e=>{const t=e.target;
   const cr=t.closest('[data-crange]');if(cr){cRange=cr.dataset.crange;tradePage(true);return}
 });
 addEventListener('popstate',()=>popPage());
+if(pushOK)navigator.serviceWorker.addEventListener('message',e=>{const u=e.data&&e.data.open;if(!u)return;const id=new URL(u,location.origin).searchParams.get('bot');if(id&&D&&D.bots.some(b=>b.id===id))openTrader(id)});
+pushRefresh().then(()=>{if(pushSub)pushSave().catch(()=>{})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('#notif').hidden)$('#notif').hidden=true;else if(pages.length)history.back()}});
 setInterval(()=>{if(!lastFetch)return;const s=Math.round((Date.now()-lastFetch)/1000);let t=`Обновено преди ${s} с`;
   if(D&&D.dataT&&(D.status==='open'||D.status==='premarket')){const a=Math.max(0,Math.round((Date.now()-D.dataT)/1000));t+=` · цените са отпреди ${a<120?a+' с':Math.round(a/60)+' мин'} · ${D.srcLive==='yahoo+finnhub'?'Yahoo + Finnhub':'Yahoo'}`}
