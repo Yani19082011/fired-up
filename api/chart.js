@@ -14,9 +14,12 @@ module.exports = async (req, res) => {
       const r = d?.chart?.result?.[0]; if (!r) throw new Error('yahoo empty');
       bars = E.ybars(r);
     } else {
-      if (/-USD$/.test(s)) { // крипто: денят никога не свършва → последните 8 часа
+      if (/-USD$/.test(s)) { // крипто: денят никога не свършва → последните 8 часа (Coinbase на живо; ако го няма там — Yahoo)
+        try { bars = await require('./_cb').cbBars(s, Date.now() - 8 * 3600e3); } catch (e) { bars = null; }
+        if (!bars) {
         const d = await E.yget(`/v8/finance/chart/${encodeURIComponent(s)}?interval=1m&period1=${Math.floor((Date.now() - 8 * 3600e3) / 1000)}&period2=${Math.ceil(Date.now() / 1000) + 60}`);
         const r = d?.chart?.result?.[0]; if (!r) throw new Error('yahoo empty'); bars = E.ybars(r);
+        }
       } else
       try { const r = await E.yIntraday(s); bars = r.bars; session = r.session; prevClose = r.prevClose ?? null; }
       catch (e) { const r = await E.alpacaIntraday([s], Date.now() - 18 * 3600e3); bars = (r && r[s]) || []; }

@@ -12,6 +12,7 @@ const zlib = require('zlib');
 const E = require('./_engine');
 const { kv } = E; const H = E.H;
 let PUSH = null; try { PUSH = require('./_push'); } catch (e) { PUSH = null; }
+const CB = require('./_cb');
 
 const START = Number(process.env.DESK_CASH || 10000);
 const KEY = process.env.DESK_KEY || 'desk:v1';
@@ -49,6 +50,11 @@ const CMDTY = {
   WEAT: ['Пшеница', 0.2, /\bwheat\b/i], CORN: ['Царевица', 0.2, /\bcorn\b/i],
 };
 const NEWSQ = { GLD: 'gold price', SLV: 'silver price', USO: 'oil price', UNG: 'natural gas price', CPER: 'copper price', PPLT: 'platinum price', URA: 'uranium', DBA: 'grain prices', WEAT: 'wheat prices', CORN: 'corn prices' };
+// резервен списък: активни акции, които обикновено са между $1 и $20 (цената се проверява всяка минута — извън $1–20 не се купуват)
+const BACKUP = ['PLUG', 'SNDL', 'BBAI', 'SOUN', 'GSAT', 'OPEN', 'CLOV', 'NIO', 'RIG', 'ACHR', 'TLRY', 'HIVE', 'BITF', 'CIFR', 'QS', 'DNA', 'FCEL', 'IQ', 'GRAB', 'SIRI',
+  'F', 'NOK', 'LCID', 'RIVN', 'AAL', 'JBLU', 'WULF', 'MARA', 'RIOT', 'CLSK', 'HUT', 'IREN', 'RGTI', 'QBTS', 'QUBT', 'KULR', 'LUNR', 'SPCE', 'JOBY', 'BLNK', 'CHPT', 'EVGO',
+  'SNAP', 'PTON', 'AMC', 'BB', 'VALE', 'ITUB', 'BBD', 'ABEV', 'KGC', 'BTG', 'NGD', 'AG', 'HL', 'CDE', 'EGO', 'IAG', 'UEC', 'UUUU', 'DNN', 'NXE', 'TELL', 'KOS', 'TDOC', 'WBD',
+  'LYFT', 'AUR', 'OUST', 'MVIS', 'NVTS', 'WOLF', 'SABR', 'BTBT', 'GPRO', 'ATAI', 'OCGN', 'NVAX', 'SAVA', 'CAN', 'MNMD', 'LAC', 'PLTK', 'AMCR', 'CCL', 'NCLH'];
 const clsOf = s => CRYPTO[s] ? 'crypto' : CMDTY[s] ? 'cmdty' : 'stock';
 const CLS_BG = { stock: 'Акция', crypto: 'Крипто', cmdty: 'Суровина' };
 const disp = s => CRYPTO[s] ? s.replace('-USD', '') : s;
@@ -94,8 +100,14 @@ function markets(st, nowMs) {
 /* ---------------- SCOUT: големите движения ---------------- */
 async function scout(st, nowMs, mk) {
   if (mk.stock && (!st.radar.length || nowMs - st.radarAt > (st.health.spark && !st.health.spark.ok ? 3 : 10) * 60000)) {
-    try { const r = await H.pickRadar(); if (r.length >= 5) { st.radar = r; st.radarAt = nowMs; ok(st, 'scout', true); } else ok(st, 'scout', false, 'празен скенер'); }
-    catch (e) { ok(st, 'scout', false, e.message); }
+    let r = []; try { r = await H.pickRadar(); } catch (e) { r = []; }
+    const dg = H.pickRadar.diag || {};
+    if (r.length >= 5) { st.radar = r; ok(st, 'scout', true); }
+    else { // скенерът на Yahoo не даде акции → резервен списък от активни акции ($1–20), цените им идват от груповата заявка
+      st.radar = BACKUP.map((s2, k) => ({ s: s2, n: 1, px: 0, chg: 0, vol: 0, vr: k + 1 }));
+      ok(st, 'scout', true); st.health.scout.err = undefined; st.health.scout.note = `скенерът на Yahoo ${dg.ok ? `върна ${dg.raw} акции, ${r.length} подходящи` : 'не отговори' + (dg.err ? ` (${String(dg.err).slice(0, 40)})` : '')} — ползвам резервен списък от ${BACKUP.length}`;
+    }
+    st.radarAt = nowMs;
   }
   const M = {};
   if (mk.stock) for (const m of st.radar) M[m.s] = { s: m.s, cls: 'stock', k: 1, px: m.px, chg: m.chg || 0, vol: m.vol || 0, chg5: null, chg15: null, pts: null };
@@ -110,7 +122,7 @@ async function scout(st, nowMs, mk) {
     if (!pts.length) continue; n++;
     const last = pts[pts.length - 1][1], b5 = pts[Math.max(0, pts.length - 6)][1], b15 = pts[Math.max(0, pts.length - 16)][1];
     const pdc = d.pdc || (m.px && m.chg != null ? m.px / (1 + m.chg / 100) : null);
-    m.px = last; m.chg5 = (last / b5 - 1) * 100; m.chg15 = (last / b15 - 1) * 100; if (pdc) m.chg = (last / pdc - 1) * 100; m.pts = pts;
+    m.px = last; m.chg5 = (last / b5 - 1) * 100; m.chg15 = (last / b15 - 1) * 100; if (pdc) { m.chg = (last / pdc - 1) * 100; m.pdc = pdc; } m.pts = pts;
   }
   ok(st, 'spark', n >= 3, n ? '' : 'груповата заявка не отговори — ползвам скенерите');
   st.scan = { radar: st.radar.length, crypto: Object.keys(CRYPTO).length, cmdty: mk.cmdty ? Object.keys(CMDTY).length : 0, live: n, t: nowMs };
@@ -209,7 +221,10 @@ function sentTxt(s) {
 /* ---------------- CHART: вход, стоп, цел ---------------- */
 async function bars(st, sym, sess, nowMs) {
   const cls = clsOf(sym); let arr, ctx = {};
-  if (cls === 'crypto') { // крипто: последните 8 часа (денят при крипто никога не свършва)
+  if (cls === 'crypto') { // крипто: последните 8 часа (денят при крипто никога не свършва) — направо от Coinbase, ако може
+    const L = st.live && st.live[sym];
+    try { arr = await CB.cbBars(sym, nowMs - 8 * 3600e3, nowMs); ctx.pdc = L && L.pdc; ok(st, 'coinbase', true); return { arr, ctx, cls, src: 'Coinbase' }; }
+    catch (e) { if (!CB.NOT.has(sym)) ok(st, 'coinbase', false, e.message); }
     const d = await E.yget(`/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&period1=${Math.floor((nowMs - 8 * 3600e3) / 1000)}&period2=${Math.ceil(nowMs / 1000) + 60}`);
     const res = d && d.chart && d.chart.result && d.chart.result[0]; if (!res) throw new Error('yahoo empty ' + sym);
     arr = E.ybars(res); ctx.pdc = res.meta && (res.meta.chartPreviousClose ?? res.meta.previousClose);
@@ -219,7 +234,7 @@ async function bars(st, sym, sess, nowMs) {
     arr = r.bars.filter(b => b.t >= sess.start && b.t < sess.end);
     ctx = { ...(st.daily[sym] || {}) }; if (!ctx.pdc && r.prevClose) ctx.pdc = r.prevClose;
   }
-  return { arr, ctx, cls };
+  return { arr, ctx, cls, src: 'Yahoo' };
 }
 function chartPlan(sym, arr, ctx, nowMs, regStart) {
   const cls = clsOf(sym);
@@ -391,6 +406,11 @@ async function tick(nowMs = Date.now()) {
   const got = await Promise.allSettled(need.map(s => bars(st, s, S, nowMs)));
   const D = {}; got.forEach((r, k) => { if (r.status === 'fulfilled') D[need[k]] = r.value; });
   ok(st, 'chart', !need.length || Object.keys(D).length >= need.length / 2, 'Yahoo не даде графики');
+  { // колко пресни са цените: последната свещ (ако е текущата минута — цената е от момента на заявката)
+    let fresh = 0; for (const d of Object.values(D)) { const lb = d.arr[d.arr.length - 1]; if (lb) fresh = Math.max(fresh, lb.t > nowMs - 60000 ? nowMs : lb.t + 60000); }
+    if (fresh) st.dataT = Math.min(fresh, nowMs);
+    st.src = { crypto: Object.values(D).some(d => d.src === 'Coinbase') ? 'Coinbase' : 'Yahoo', stock: 'Yahoo' };
+  }
 
   // 3) поръчките от миналата минута се изпълняват (на отварянето на следващата минута)
   for (const idea of st.ideas.filter(i => i.status === 'pending')) {
@@ -432,6 +452,7 @@ async function tick(nowMs = Date.now()) {
       if (b.t - p.t > 10 * 60000 && I.c[k] < vw && I.c[k] < p.entry + 0.5 * p.risk) { p.exitNext = 'vwap'; say(st, b.t, 'chart', `${disp(p.sym)} падна под средната си цена — силата изчезна. Излизаме на следващата минута.`, p.idea); }
     }
     if (st.positions.includes(p)) {
+      const lb = d.arr[d.arr.length - 1]; if (lb && lb.t > p.lastT) p.last = lb.c; // цената сега (и от текущата минута) — за сметката и екрана
       const nw = st.news[p.sym]; if (nw && nw.cat.hard && !p.exitNext && nw.at > p.t) { p.exitNext = 'news'; say(st, nowMs, 'news', `Нова лоша новина за ${nameOf(p.sym)}: ${nw.cat.bg}. Излизаме!`, p.idea); }
       if (halted && !p.haltSaid) { p.haltSaid = 1; say(st, nowMs, 'chief', `⏸ ${p.sym} е спряна от борсата — не можем да продадем, докато не я пуснат.`, p.idea); note(st, 'sell', `⏸ ${p.sym} е спряна`, 'Не можем да продадем, докато борсата не я пусне.', p.idea); }
     }
@@ -527,7 +548,15 @@ async function finish(st, nowMs) {
   const outbox = st.outbox || []; st.outbox = [];
   const live = st.live; if (live) st.lastTicker = tickerOf(live);
   delete st.live; // „живите“ данни не се пазят — тежат
-  st.ideas.forEach(i => { if (i.news && i.news.items) i.news.items = i.news.items.slice(0, 4); });
+  // паметта (Upstash, безплатно до 10 GB/месец): пълен дебат за последните 60 идеи и активните; по-старите сделки — накратко; останалото се изтрива
+  const active = i => ['wait', 'pending', 'open'].includes(i.status) || (i.shadow && !i.shadow.out);
+  let old = 0;
+  st.ideas = st.ideas.filter((i, k) => {
+    if (i.news && i.news.items) i.news.items = i.news.items.slice(0, k < 60 ? 4 : 0);
+    if (k < 60 || active(i)) return true;
+    if (i.status === 'closed' && old < 150) { old++; i.log = []; if (i.ai) i.ai = { why: i.ai.why, skeptic: i.ai.skeptic, chief: i.ai.chief, by: i.ai.by }; return true; }
+    return false;
+  });
   await saveState(st);
   st.live = live;
   if (outbox.length && PUSH) await PUSH.flush(outbox).catch(e => console.error('push', e.message));
@@ -569,7 +598,7 @@ function view(st, nowMs = Date.now()) {
   const byCls = {}; for (const t of st.trades) { const c = t.cls || clsOf(t.sym); const b = byCls[c] = byCls[c] || { n: 0, won: 0, pnl: 0 }; b.n++; if (t.pnl > 0) b.won++; b.pnl = r2(b.pnl + t.pnl); }
   return {
     v: 'desk', startCash: START, cash: r2(st.cash), equity: r2(eq), total: r2(eq - START), totalPct: r2((eq / START - 1) * 100), today: r2(eq - (st.dayStart || START)), todayPct: r2((eq / (st.dayStart || START) - 1) * 100),
-    status: st.status, session: st.session, day: st.day, lastTick: st.lastTick, dayLocked: !!st.dayLocked, scan: st.scan || null, ticker: st.live ? tickerOf(st.live) : (st.lastTicker || []),
+    status: st.status, dataT: st.dataT || null, src: st.src || null, session: st.session, day: st.day, lastTick: st.lastTick, dayLocked: !!st.dayLocked, scan: st.scan || null, ticker: st.live ? tickerOf(st.live) : (st.lastTicker || []),
     positions, trades: st.trades.slice(0, 150).map(t => ({ ...t, d: t.d || disp(t.sym), cls: t.cls || clsOf(t.sym) })), ideas: st.ideas.slice(0, 80).map(brief), feed: st.feed.slice(0, 150), eqHist: st.eqHist,
     stats: { ...st.stats, closed, won, winRate: closed ? Math.round(won / closed * 100) : null, todayTrades: today.length, todayWon: today.filter(t => t.pnl > 0).length, ideasToday: ideasToday.length, byCls,
       bestPct: closed ? Math.max(...st.trades.map(t => t.pct)) : null, worstPct: closed ? Math.min(...st.trades.map(t => t.pct)) : null, avgPct: closed ? r2(st.trades.reduce((a, t) => a + t.pct, 0) / closed) : null },
