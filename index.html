@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up · Деск</title>
-<meta name="fu-ver" content="43">
+<meta name="fu-ver" content="45">
 <meta name="theme-color" content="#F5F6F8">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -234,6 +234,8 @@ const cls=n=>n>0?'up':n<0?'down':'';
 const col=n=>n>0?'#00A35C':n<0?'#E5484D':'#6B7280';
 const px=n=>'$'+(n>=1000?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):n<1?n.toFixed(4):n.toFixed(2));
 const pxc=(n,c)=>c==='fx'?n.toFixed(n<10?5:3):px(n);
+const dirTag=d=>d<0?'<span class="chip" style="--c:#E5484D;margin-left:6px">↓ СПАД</span>':'';
+const BSK=d=>d<0?['S','B']:['B','S']; // при залог на спад първо „продаваме“, после „купуваме“ обратно
 const qtyF=q=>q>=100?Math.round(q).toLocaleString('en-US'):String(Math.round(q*1e6)/1e6).replace('.',',');
 const CLS={stock:['АКЦИЯ','#2F5BEA'],crypto:['КРИПТО','#D99A00'],cmdty:['СУРОВИНА','#8B5CF6'],gold:['ЗЛАТО','#B8860B'],idx:['ИНДЕКС','#0E7490'],fx:['ВАЛУТА','#059669']};
 const symBox=(d,c)=>`<span class="sym" style="--c:${(CLS[c]||CLS.stock)[1]}">${esc(d)}<small>${(CLS[c]||CLS.stock)[0]}</small></span>`;
@@ -247,7 +249,7 @@ const AG={scout:{e:'🔭',c:'#2F5BEA',n:'Scout',bg:'Разузнавач'},news:
 const AGK=Object.keys(AG);
 const VERD={BUY:['КУПИ','#00A35C'],WAIT:['ЧАКАЙ','#D99A00'],SKIP:['ПРОПУСНИ','#E5484D']};
 const STAT={pending:['ПОРЪЧКА','#2F5BEA'],open:['В СДЕЛКА','#2F5BEA'],wait:['ЧАКА','#D99A00'],skip:['ПРОПУСНАТА','#E5484D'],expired:['ОТКАЗ','#9CA3AF'],new:['НОВА','#6B7280']};
-const WHY={target:'цел',stop:'стоп',be:'стоп на входа',time:'време',vwap:'под средната цена',news:'лоша новина',eod:'край на деня'};
+const WHY={target:'цел',stop:'стоп',be:'стоп на входа',time:'време',vwap:'обърна се спрямо средната',news:'новина против нас',eod:'пазарът затвори'};
 const av=k=>`<span class="av" style="--c:${AG[k].c}">${AG[k].e}</span>`;
 const now=()=>Date.now();
 
@@ -345,9 +347,9 @@ function candles(cv,d,o,hx){
 /* ——— начало ——— */
 function verdChip(i){if(i.status==='closed'&&i.result)return `<span class="chip" style="--c:${col(i.result.pct)}">${pct1(i.result.pct)}</span>`;const s=STAT[i.status]||['—','#6B7280'];return `<span class="chip${['skip','expired'].includes(i.status)?' o':''}" style="--c:${s[1]}">${s[0]}</span>`}
 function ideaRow(i){const sub=i.status==='skip'||i.status==='expired'?(i.obj||i.cat||''):i.cat?`Защо: ${i.cat}`:'';
-  return `<button type="button" class="idea" data-idea="${esc(i.id)}">${symBox(i.d||i.sym,i.cls)}<span class="m"><b>${pct1(i.chg)} ${['stock','cmdty','idx'].includes(i.cls)?'днес':'от вчера'}${i.chg5!=null?` · ${pct1(i.chg5)} за 5 мин`:''}</b><span>${esc(sub)}</span></span><span class="r">${verdChip(i)}<small class="mut" style="font-size:11px;font-family:var(--mono)">${nyTime(i.t)}</small></span></button>`}
-function posCard(p){const fr=Math.max(0,Math.min(1,(p.last-p.stop)/((p.target-p.stop)||1)));
-  return `<button type="button" class="pos" data-idea="${esc(p.idea)}"><span class="a">${symBox(p.d||p.sym,p.cls)}<span class="m"><b>${qtyF(p.qty)} ${p.cls==='stock'?'акции':p.cls==='crypto'?'бр.':'ед.'} · ${pxc(p.entry,p.cls)} → ${pxc(p.last,p.cls)}</b><span>${p.halted?'⏸ спряна от борсата · ':''}от ${nyTime(p.t)} · ${dur(now()-p.t)}</span></span><span class="pl" style="color:${col(p.pct)}">${pct(p.pct)}<small>${money(p.pnl,true)}</small></span></span>
+  return `<button type="button" class="idea" data-idea="${esc(i.id)}">${symBox(i.d||i.sym,i.cls)}<span class="m"><b>${(i.dir||1)<0?'<span style="color:#E5484D">↓ спад</span> · ':''}${pct1(i.chg)} ${['stock','cmdty','idx'].includes(i.cls)?'днес':'от вчера'}${i.chg5!=null?` · ${pct1(i.chg5)} за 5 мин`:''}</b><span>${esc(sub)}</span></span><span class="r">${verdChip(i)}<small class="mut" style="font-size:11px;font-family:var(--mono)">${nyTime(i.t)}</small></span></button>`}
+function posCard(p){const fr=Math.max(0,Math.min(1,(p.last-p.stop)/((p.target-p.stop)||1)));const dn=(p.dir||1)<0;
+  return `<button type="button" class="pos" data-idea="${esc(p.idea)}"><span class="a">${symBox(p.d||p.sym,p.cls)}<span class="m"><b>${dn?'↓ спад · ':''}${qtyF(p.qty)} ${p.cls==='stock'?'акции':p.cls==='crypto'?'бр.':'ед.'} · ${pxc(p.entry,p.cls)} → ${pxc(p.last,p.cls)}</b><span>${p.halted?'⏸ спряна от борсата · ':''}от ${nyTime(p.t)} · ${dur(now()-p.t)}</span></span><span class="pl" style="color:${col(p.pct)}">${pct(p.pct)}<small>${money(p.pnl,true)}</small></span></span>
     <span class="meter"><i style="left:${(fr*100).toFixed(1)}%"></i></span><span class="ml"><span class="down">стоп ${pxc(p.stop,p.cls)}</span><span class="up">цел ${pxc(p.target,p.cls)}</span></span></button>`}
 let hHover=null;
 function home(d){
@@ -355,7 +357,7 @@ function home(d){
   $('#aVal').innerHTML=`${money(d.equity)} <span>· днес</span> <b style="color:${col(d.today)}">${money(d.today,true)} (${pct(d.todayPct)})</b> <span>· старт ${money0(d.startCash)}</span>`;
   document.querySelectorAll('#htf button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tf===hTf)));
   const pts=tfFilter(d.eqHist,hTf);const from=pts.length?pts[0][0]:0;
-  const marks=[];for(const t of d.trades.slice(0,6)){if(t.in>=from)marks.push({t:t.in,k:'B'});if(t.out>=from)marks.push({t:t.out,k:'S'})}for(const p of d.positions)if(p.t>=from)marks.push({t:p.t,k:'B'}); // само последните сделки, иначе графиката се задръства
+  const marks=[];for(const t of d.trades.slice(0,6)){const k=BSK(t.dir||1);if(t.in>=from)marks.push({t:t.in,k:k[0]});if(t.out>=from)marks.push({t:t.out,k:k[1]})}for(const p of d.positions)if(p.t>=from)marks.push({t:p.t,k:BSK(p.dir||1)[0]}); // само последните сделки, иначе графиката се задръства
   const cv=$('#homeChart');const draw=hx=>lineChart(cv,pts,{base:hTf==='all'?d.startCash:pts.length?pts[0][1]:d.startCash,baseLabel:hTf==='all'?money0(d.startCash):'',marks,onHover:(i,P,base)=>{
     if(i==null){$('#aLbl').textContent='Сметката на деска';$('#aPct').innerHTML=`<span style="color:${col(tpct)}">${pct(tpct)}</span>`;return}
     const v=P[i][1];$('#aLbl').textContent=tlabel(P[i][0]);$('#aPct').innerHTML=`<span style="color:${col(v-d.startCash)}">${pct((v/d.startCash-1)*100)}</span>`}},hx);
@@ -365,7 +367,8 @@ function home(d){
     ['ИДЕИ ДНЕС',`${S.ideasToday}`],
     ['СДЕЛКИ ДНЕС',`${S.todayTrades} <small>${S.todayTrades?`${S.todayWon} на печалба`:''}</small>`],
     ['УСПЕХ ОБЩО',S.winRate==null?'—':`${S.winRate}% <small>${S.won}/${S.closed}</small>`],
-    ['СКЕПТИКЪТ',`${S.skip} <small>спрени · ${S.saved} спестени</small>`]].map(([k,v])=>`<div class="tile"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+    ['СКЕПТИКЪТ',`${S.skip} <small>спрени · ${S.saved} спестени</small>`],
+    ...(d.gen?[[`ЕКИП №${d.gen.n}`,`<span style="color:${col(d.gen.pnl)}">${money(d.gen.pnl,true)}</span> <small>уволнение при −€${d.gen.fireEur} · остават ${money0(Math.max(0,d.gen.left))}</small>`]]:[])].map(([k,v])=>`<div class="tile"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
   $('#team').innerHTML=AGK.map(k=>{const f=d.feed.find(e=>e.a===k);return `<button type="button" class="ag" data-agent="${k}"><span class="t">${av(k)}<span><b>${AG[k].n}</b><small>${AG[k].bg}${f?' · '+nyTime(f.t):''}</small></span></span><p>${esc(f?f.x:'Още мълчи.')}</p></button>`}).join('');
   $('#posN').textContent=`${d.positions.length} от ${d.rules.maxPos}`;
   $('#posList').innerHTML=d.positions.map(posCard).join('')||`<div class="empty">${d.dayLocked?'Декът спря за днес (−'+d.rules.dayLoss+'%).':'Няма отворени сделки — екипът търси.'}</div>`;
@@ -386,14 +389,14 @@ function trades(d){
   $('#trTiles').innerHTML=[['СДЕЛКИ',`${S.closed}`],['УСПЕХ',S.winRate==null?'—':`${S.winRate}%`],['СРЕДНО НА СДЕЛКА',S.avgPct==null?'—':`<span style="color:${col(S.avgPct)}">${pct(S.avgPct)}</span>`],['НАЙ-ДОБРА / ЛОША',S.bestPct==null?'—':`<span class="up">${pct1(S.bestPct)}</span> <small>/</small> <span class="down">${pct1(S.worstPct)}</span>`],...Object.entries(S.byCls||{}).map(([c,v])=>[(CLS[c]||CLS.stock)[0],`<span style="color:${col(v.pnl)}">${money(v.pnl,true)}</span> <small>${v.won}/${v.n} печ.</small>`])].map(([k,v])=>`<div class="tile"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
   document.querySelectorAll('#trF button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tf2===trF)));
   $('#trN').textContent=`сметка ${money(d.equity)}`;
-  if(trF==='trades'){$('#trList').innerHTML=d.trades.map(t=>`<button type="button" class="tr" data-idea="${esc(t.idea)}"><span class="bs"><i style="background:#00A35C">B</i><em></em><i style="background:#E5484D">S</i></span><span class="m"><b>${esc(t.d||t.sym)} · ${WHY[t.why]||t.why}</b><span>${(CLS[t.cls]||CLS.stock)[0].toLowerCase()} · ${nyDay(t.in)} · ${nyTime(t.in)}→${nyTime(t.out)} · ${qtyF(t.qty)} бр. · ${pxc(t.entry,t.cls)} → ${pxc(t.exit,t.cls)}</span></span><span class="p" style="color:${col(t.pct)}">${pct(t.pct)}<small>${money(t.pnl,true)}</small></span></button>`).join('')||'<div class="empty">Още няма затворени сделки.</div>';return}
+  if(trF==='trades'){$('#trList').innerHTML=d.trades.map(t=>`<button type="button" class="tr" data-idea="${esc(t.idea)}"><span class="bs">${BSK(t.dir||1).map(k=>`<i style="background:${k==='B'?'#00A35C':'#E5484D'}">${k}</i>`).join('<em></em>')}</span><span class="m"><b>${esc(t.d||t.sym)}${(t.dir||1)<0?' ↓':''} · ${WHY[t.why]||t.why}</b><span>${(CLS[t.cls]||CLS.stock)[0].toLowerCase()} · ${nyDay(t.in)} · ${nyTime(t.in)}→${nyTime(t.out)} · ${qtyF(t.qty)} бр. · ${pxc(t.entry,t.cls)} → ${pxc(t.exit,t.cls)}</span></span><span class="p" style="color:${col(t.pct)}">${pct(t.pct)}<small>${money(t.pnl,true)}</small></span></button>`).join('')||'<div class="empty">Още няма затворени сделки.</div>';return}
   const L=d.ideas.filter(i=>trF==='ideas'||i.status==='skip'||i.status==='expired');
   $('#trList').innerHTML=L.map(i=>{let extra='';if(i.shadow)extra=i.shadow.out==='stop'?' · ✓ щеше да е загуба':i.shadow.out==='target'?' · ✗ щеше да е печалба':'';return ideaRow({...i,obj:(i.obj||i.cat||'')+extra})}).join('')||'<div class="empty">Няма.</div>';
 }
 
 /* ——— екипът ——— */
 const ROLE={
-  scout:'Всяка минута сканира всичко с цени на живо: до 120 акции от $1 до $20, индексите US Tech 100, US 500 и Wall St 30, сребро, петрол, газ, мед, платина (чрез фондовете им) — в часовете на борсата; злато и 15 криптовалути — 24/7; 9 валутни двойки (EUR/USD, USD/JPY…) — от неделя вечер до петък вечер. Търси големи движения; при индексите, златото и валутите прагът е много по-нисък, защото мърдат по-малко.',
+  scout:'Всяка минута сканира всичко с цени на живо: до 120 акции от $1 до $20, индексите US Tech 100, US 500 и Wall St 30, сребро, петрол, газ, мед, платина (чрез фондовете им) — в часовете на борсата; злато и 15 криптовалути — 24/7; 9 валутни двойки (EUR/USD, USD/JPY…) — от неделя вечер до петък вечер. Как точно търси, зависи от стратегията на екипа (инерция, обрат, тренд, пробив, новини или бързи сделки). При всичко освен акциите търси и в двете посоки — за покупка и за залог на спад.',
   news:'Търси новините за акцията от последните 36 часа и казва ЗАЩО се движи: одобрение от FDA, договор, отчет… или че няма новина. Лошите новини (продажба на нови акции, фалит) са червен флаг.',
   sentiment:'Проверява какво пишат хората в StockTwits: колко поста има, колко са от последния час и колко са „купувай“ срещу „продавай“.',
   chart:'Гледа минутната графика и избира точен вход, стоп (докъде търпим загуба) и цел (2 пъти риска). Казва и кога акцията е избягала твърде високо, за да я гоним.',
@@ -404,7 +407,11 @@ function team(d){
   const st={scout:[['идеи',S.scout],['днес',S.ideasToday],['радар',d.scan?d.scan.radar:'—']],news:[['с новина',S.newsFound],['без новина',S.newsNone],['източник',d.finnhub?'Yahoo+Finnhub':'Yahoo']],
     sentiment:[['източник','StockTwits'],['състояние',H.sentiment?(H.sentiment.ok?'✓':'✗'):'—'],['резерва','новините']],chart:[['вход','лимит'],['цел','2× риска'],['стоп','≤ 8%']],
     skeptic:[['спря',S.skip],['вето',S.vetoHard],['прав',S.saved+S.missed?Math.round(S.saved/(S.saved+S.missed)*100)+'%':'—']],chief:[['купи',S.buy],['чакай',S.wait],['успех',S.winRate==null?'—':S.winRate+'%']]};
-  $('#teamList').innerHTML=AGK.map(k=>`<div class="card agc">${''}<span class="hd">${av(k)}<span><b>${AG[k].n} · ${AG[k].bg}</b><small>${esc(d.agents&&d.agents[k]?d.agents[k].role:'')}</small></span></span><p>${ROLE[k]}</p><span class="kv">${st[k].map(([a,b])=>`<span><small>${a.toUpperCase()}</small><b>${esc(b)}</b></span>`).join('')}</span>${k==='skeptic'?`<p class="mut" style="font-size:12.5px">След всяко „пропусни“ следим акцията 60 минути: ${S.saved} пъти щеше да е загуба (спести ни пари), ${S.missed} пъти щеше да е печалба (сбърка). Приблизително, по минутните цени.</p>`:''}</div>`).join('')+
+  const G=d.gen;const genCard=G?`<div class="card" style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><b style="font-size:17px">Екип №${G.n}${G.strat?` · „${esc(G.strat)}“`:''}</b><span class="mut" style="font-size:12px">на работа от ${tlabel(G.at)}</span></span>
+    <span style="font-size:14px">Резултат на екипа: <b style="color:${col(G.pnl)}">${money(G.pnl,true)}</b>. Ако загуби €${G.fireEur} (около ${money0(G.fireUsd)}), целият екип се уволнява и идва нов с ДРУГА стратегия. Остават ${money0(Math.max(0,G.left))}.</span>
+    <ul class="note" style="margin:0;padding-left:18px">${G.txt.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+    ${(d.gens||[]).length?`<b style="font-size:13px;margin-top:4px">Уволнени екипи</b>${d.gens.map(g=>`<span class="mut" style="font-size:12.5px">№${g.n} · ${tlabel(g.at)} → ${tlabel(g.to)} · <b style="color:${col(g.pnl)}">${money(g.pnl,true)}</b> · ${g.trades} сделки, ${g.won} на печалба</span>`).join('')}`:''}</div>`:'';
+  $('#teamList').innerHTML=genCard+AGK.map(k=>`<div class="card agc">${''}<span class="hd">${av(k)}<span><b>${AG[k].n} · ${AG[k].bg}</b><small>${esc(d.agents&&d.agents[k]?d.agents[k].role:'')}</small></span></span><p>${ROLE[k]}</p><span class="kv">${st[k].map(([a,b])=>`<span><small>${a.toUpperCase()}</small><b>${esc(b)}</b></span>`).join('')}</span>${k==='skeptic'?`<p class="mut" style="font-size:12.5px">След всяко „пропусни“ следим акцията 60 минути: ${S.saved} пъти щеше да е загуба (спести ни пари), ${S.missed} пъти щеше да е печалба (сбърка). Приблизително, по минутните цени.</p>`:''}</div>`).join('')+
   `<div class="card"><b>Източници на данни</b><div class="health" style="margin-top:6px">
     <div><span>Цени и радар (Yahoo)</span>${ok('scout')}</div><div><span>Групова заявка (Yahoo)</span>${ok('spark')}</div><div><span>Минутни графики (Yahoo)</span>${ok('chart')}</div><div><span>Крипто на живо (Coinbase)</span>${ok('coinbase')}</div>
     <div><span>Новини</span>${ok('news')}</div><div><span>StockTwits</span>${ok('sentiment')}</div>
@@ -418,7 +425,9 @@ function team(d){
     <li>Плащаме спреда и таксите на SEC/FINRA при продажба. Не купуваме повече от 10% от обема за минута.</li>
     <li>Най-много ${d.rules.maxPos} сделки наведнъж, риск до ${d.rules.risk}% от сметката на сделка. При −${d.rules.dayLoss}% за деня декът спира до утре.</li>
     <li>Ако борсата спре акцията (halt), не можем да продадем, докато не я пусне.</li>
-    <li>Чакаща идея се преглежда всяка минута до ${d.rules.waitMin} мин. Сделка се държи най-много ${d.rules.maxHold} мин и се затваря преди края на деня.</li></ul></div>`;
+    <li>Чакаща идея се преглежда всяка минута до ${d.rules.waitMin} мин. Сделка се държи най-много ${d.rules.maxHold} мин и се затваря преди края на деня.</li>
+    <li>Залог на спад (short): при валути, индекси, злато, суровини и крипто — като CFD, без ливъридж. При акциите — само покупка при скок нагоре.</li>
+    <li>Една идея на ден за всяко нещо: каквото е продадено, пропуснато или отказано днес, не се купува отново (при крипто, злато и валути — 12 часа).</li></ul></div>`;
 }
 
 /* ——— страница на идея ——— */
@@ -434,7 +443,7 @@ function ideaPage(refresh){
   const I=IDEA;const keep=pg.scrollTop;
   if(I&&I.missing){pg.innerHTML=`<div class="wrap"><div class="ph"><button type="button" class="back" data-close aria-label="Назад">${BACK}</button><span class="t"><b>${esc(brief?brief.d:'Идея')}</b><span>старата идея е изтрита</span></span></div><div class="empty">Пазим дебата за последните идеи и за всички сделки. Тази идея е по-стара и вече я няма.</div></div>`;return}
   if(!I){pg.innerHTML=`<div class="wrap"><div class="ph"><button type="button" class="back" data-close aria-label="Назад">${BACK}</button><span class="t"><b>${esc(brief?brief.sym:'…')}</b><span>Зарежда дебата…</span></span></div></div>`;return}
-  const ch=I.chief||{},sk=I.skeptic||{},v=VERD[ch.verdict]||['—','#6B7280'];
+  const ch=I.chief||{},sk=I.skeptic||{},dn=(I.dir||1)<0,v=ch.verdict==='BUY'&&dn?['ЗАЛОЖИ НА СПАД','#E5484D']:VERD[ch.verdict]||['—','#6B7280'];
   const tr=I.trade,pos=I.pos;const st=I.status==='closed'&&tr?[pct1(tr.pct),col(tr.pct)]:STAT[I.status]||['—','#6B7280'];
   let res='';
   if(tr)res=`<div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px"><span><b>Сделката</b><span class="mut" style="display:block;font-size:12.5px">${qtyF(tr.qty)} бр. · ${px(tr.entry)} → ${px(tr.exit)} · ${nyTime(tr.in)}→${nyTime(tr.out)} · ${WHY[tr.why]||tr.why}</span></span><b style="font-size:20px;color:${col(tr.pct)};text-align:right">${pct(tr.pct)}<small style="display:block;font-size:12.5px">${money(tr.pnl,true)}</small></b></div>`;
@@ -446,7 +455,7 @@ function ideaPage(refresh){
   const log=(I.log||[]).map(l=>`<li>${nyTime(l.t)} — <b style="color:${(VERD[l.v]||['',''])[1]}">${(VERD[l.v]||[l.v])[0]}</b>: ${esc(l.why)}</li>`).join('');
   const convP=Math.max(0,Math.min(100,(ch.conv||0)/5*100));
   pg.innerHTML=`<div class="wrap">
-    <div class="ph"><button type="button" class="back" data-close aria-label="Назад">${BACK}</button><span class="t"><b>${esc(I.name||I.sym)}</b><span>${(CLS[I.cls]||CLS.stock)[0].toLowerCase()} · ${tlabel(I.t)} · ${pct1(I.scout.chg)} ${['stock','cmdty','idx'].includes(I.cls)?'днес':'от вчера'}</span></span><span class="chip" style="--c:${st[1]}">${st[0]}</span></div>
+    <div class="ph"><button type="button" class="back" data-close aria-label="Назад">${BACK}</button><span class="t"><b>${esc(I.name||I.sym)}${dn?' <span style="color:#E5484D;font-size:15px">↓ залог на спад</span>':''}</b><span>${(CLS[I.cls]||CLS.stock)[0].toLowerCase()} · ${tlabel(I.t)} · ${pct1(I.scout.chg)} ${['stock','cmdty','idx'].includes(I.cls)?'днес':'от вчера'}</span></span><span class="chip" style="--c:${st[1]}">${st[0]}</span></div>
     ${res}
     <div class="card" style="margin-top:12px;padding:10px">
       <canvas class="chart" id="iChart" style="height:250px" aria-label="Графика на ${esc(I.sym)}"></canvas>
@@ -458,7 +467,7 @@ function ideaPage(refresh){
       ${step('news',`<p>${esc(I.newsTxt)}</p>${I.ai&&I.ai.why?`<div class="ai"><small>AI ОБОБЩЕНИЕ</small>${esc(I.ai.why)}</div>`:''}${newsList?`<div class="news" style="margin-top:8px">${newsList}</div>`:''}`)}
       ${step('sentiment',`<p>${esc(I.sentTxt)}</p>`)}
       ${step('chart',`<p>${esc(I.chartTxt)}</p>${c?`<p class="mut" style="font-size:12.5px">Цена ${px(c.px)} · средна за деня (VWAP) ${px(c.vwap)} · RSI ${c.rsi}</p>`:''}`)}
-      ${step('skeptic',`<p><b style="color:${(VERD[sk.verdict]||['','#6B7280'])[1]}">${(VERD[sk.verdict]||['—'])[0]}</b></p>${objs.length?`<ul>${objs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul>`:'<p>Търсих причина да не купуваме и не намерих сериозна.</p>'}${I.ai&&I.ai.skeptic?`<div class="ai"><small>AI СКЕПТИК</small>${esc(I.ai.skeptic)}</div>`:''}`)}
+      ${step('skeptic',`<p><b style="color:${(VERD[sk.verdict]||['','#6B7280'])[1]}">${sk.verdict==='BUY'&&dn?'ЗАЛОЖИ НА СПАД':(VERD[sk.verdict]||['—'])[0]}</b></p>${objs.length?`<ul>${objs.map(o=>`<li>${esc(o)}</li>`).join('')}</ul>`:'<p>Търсих причина да не купуваме и не намерих сериозна.</p>'}${I.ai&&I.ai.skeptic?`<div class="ai"><small>AI СКЕПТИК</small>${esc(I.ai.skeptic)}</div>`:''}`)}
       ${step('chief',`<p><span class="chip" style="--c:${v[1]}">${v[0]}</span> ${esc(ch.why||'')}</p>${I.ai&&I.ai.chief?`<div class="ai"><small>AI ШЕФ</small>${esc(I.ai.chief)}</div>`:''}<div class="conv"><i style="width:${convP}%;background:${convP>=50?'#00A35C':convP>=30?'#D99A00':'#E5484D'}"></i></div><p class="mut" style="font-size:12px">Увереност ${String(ch.conv??'—').replace('.',',')} от 5${ch.verdict==='BUY'?` · ${Math.round((ch.sizePct||0)*100)}% от сметката`:''}</p>${log.length&&I.log.length>1?`<ul class="mut">${log}</ul>`:''}`)}
     </div>
     <div class="h"><b>Какво стана после</b></div>
@@ -466,13 +475,13 @@ function ideaPage(refresh){
   </div>`;
   pg.scrollTop=keep;
   const cv=$('#iChart');const o={entry:tr?tr.entry:pos?pos.entry:c&&c.entry,stop:tr?tr.stop0:pos?pos.stop:c&&c.stop,tp:tr?tr.target:pos?pos.target:c&&c.target,from:I.t-40*60000,to:tr?tr.out+20*60000:null,signal:I.t,
-    marks:[...(tr?[{t:tr.in,p:tr.entry,k:'B'},{t:tr.out,p:tr.exit,k:'S'}]:[]),...(pos?[{t:pos.t,p:pos.entry,k:'B'}]:[])]};
+    marks:[...(tr?[{t:tr.in,p:tr.entry,k:BSK(tr.dir||1)[0]},{t:tr.out,p:tr.exit,k:BSK(tr.dir||1)[1]}]:[]),...(pos?[{t:pos.t,p:pos.entry,k:BSK(pos.dir||1)[0]}]:[])]};
   const sym=I.sym;const cd=chartCache[sym]&&chartCache[sym].d;candles(cv,cd||false,o);
   getChart(sym).then(d=>{if(ideaId!==I.id)return;const draw=hx=>candles(cv,d,o,hx);draw(null);scrub(cv,draw)});
 }
 
 /* ——— известия ——— */
-function notifItems(d){return d.feed.filter(e=>e.a==='chief'&&/^(КУПУВАМЕ|ЧАКАМЕ|ПРОПУСКАМЕ|Купихме|Продадохме|Декът|Днес|Денят)/.test(e.x))}
+function notifItems(d){return d.feed.filter(e=>e.a==='chief'&&/^(КУПУВАМЕ|ЗАЛАГАМЕ|ЧАКАМЕ|ПРОПУСКАМЕ|Купихме|Заложихме|Продадохме|Затворихме|Декът|Днес|Денят|Борсата|🔥)/.test(e.x))}
 function bell(d){const n=notifItems(d).filter(e=>e.t>notifSeen).length;$('#bellN').hidden=!n;$('#bellN').textContent=n>9?'9+':n}
 const pushOK=('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window);
 const PDEF={buy:true,sell:true,wait:true,skip:true,summary:true};
@@ -497,7 +506,7 @@ function pushBox(){
     <button type="button" id="pushOn" ${pushBusy?'disabled':''} style="height:46px;border:0;border-radius:14px;background:var(--ink);color:#fff;font-weight:800;font-size:14px">${pushBusy?'Включвам…':'🔔 Включи известията'}</button>${pushMsg?`<span style="font-size:12.5px;color:#D99A00">${esc(pushMsg)}</span>`:''}</div>`;
   const row=(k,l,sub)=>`<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line2);cursor:pointer"><span style="flex:1"><b style="font-size:14px">${l}</b>${sub?`<span class="mut" style="display:block;font-size:12px">${sub}</span>`:''}</span><input type="checkbox" data-pp="${k}" ${pushPrefs[k]?'checked':''} style="width:22px;height:22px;accent-color:#00A35C"></label>`;
   return `<div class="card" style="margin:6px 0 12px"><b>Известия на телефона · включени ✓</b>
-    ${row('buy','🟢 Купихме','„КУПИХМЕ ABCD · 400 акции по $3,12 · стоп · цел“')}${row('sell','🔴🟢 Продадохме','с процента и сумата')}${row('wait','⏳ Чакаме','когато Скептикът каже „чакай“')}${row('skip','⛔ Пропускаме','когато Скептикът спре идея')}${row('summary','📊 Обобщение в края на деня','')}
+    ${row('buy','🟢 Влязохме (покупка или залог на спад)','„КУПИХМЕ ABCD…“ или „ЗАЛОЖИХМЕ НА СПАД: GOLD…“')}${row('sell','🔴🟢 Излязохме','с процента и сумата')}${row('wait','⏳ Чакаме','когато Скептикът каже „чакай“')}${row('skip','⛔ Пропускаме','когато Скептикът спре идея')}${row('summary','📊 Обобщение в края на деня','')}
     <span style="display:flex;gap:8px;margin-top:10px"><button type="button" id="pushTest" style="flex:1;height:40px;border:1px solid var(--line);border-radius:12px;background:var(--raise);font-weight:800">Пробно известие</button><button type="button" id="pushOff" style="height:40px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:none;color:var(--muted);font-weight:800">Изключи</button></span>${pushMsg?`<span style="display:block;font-size:12.5px;color:#D99A00;margin-top:8px">${esc(pushMsg)}</span>`:''}</div>`;
 }
 function renderNotif(){const it=notifItems(D||{feed:[]});$('#notifBox').innerHTML=`<div class="grab"></div><b style="font-size:17px">Известия</b>`+pushBox()+`<div class="chat">${it.slice(0,60).map(msgRow).join('')||'<div class="empty">Още няма решения.</div>'}</div>`}
