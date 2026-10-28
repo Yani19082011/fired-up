@@ -130,7 +130,7 @@ async function scout(st, nowMs, mk) {
   const recent = new Set(st.ideas.filter(i => nowMs - i.t < COOLDOWN * 60000 || ['wait', 'open', 'pending'].includes(i.status)).map(i => i.sym));
   const held = new Set(st.positions.map(p => p.sym));
   const cands = Object.values(M).filter(m => m.px > 0 && mk.canEnter(m.cls) && !recent.has(m.s) && !held.has(m.s) && (m.cls !== 'stock' || (m.px >= H.PRICE_MIN && m.px <= H.PRICE_MAX && !H.isHalted(st, m.s, nowMs))) &&
-    (m.chg5 != null ? ((m.chg >= 10 * m.k && m.chg5 >= 1.5 * m.k) || m.chg5 >= 4 * m.k || (m.chg >= 25 * m.k && m.chg5 > 0.3 * m.k)) : (m.cls === 'stock' && m.chg >= 20)))
+    (m.chg5 != null ? ((m.chg >= 10 * m.k && m.chg5 >= 1.5 * m.k) || m.chg5 >= 3 * m.k || (m.chg >= 20 * m.k && m.chg5 > 0.3 * m.k)) : (m.cls === 'stock' && m.chg >= 20)))
     .map(m => ({ ...m, power: ((m.chg5 || 0) * 2 + m.chg / 10) / m.k + Math.min(3, m.vol / 2e7) })).sort((a, b) => b.power - a.power);
   return cands.slice(0, NEW_PER_TICK);
 }

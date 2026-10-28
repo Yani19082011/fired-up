@@ -148,7 +148,7 @@ function parseSpark(d) {
 }
 async function ySpark(syms) {
   const ch = []; for (let i = 0; i < syms.length; i += 20) ch.push(syms.slice(i, i + 20));
-  const res = await Promise.allSettled(ch.map(c => yget(`/v8/finance/spark?symbols=${c.map(encodeURIComponent).join(',')}&range=1d&interval=1m&includePrePost=true`)));
+  const res = await Promise.allSettled(ch.map(c => yget(`/v8/finance/spark?symbols=${c.map(encodeURIComponent).join(',')}&range=1d&interval=1m`))); // без includePrePost: с него Yahoo не връща цени за акции и фондове
   const out = {}; for (const r of res) if (r.status === 'fulfilled') Object.assign(out, parseSpark(r.value));
   return out;
 }
@@ -159,7 +159,8 @@ async function pickRadar() {
   pickRadar.diag = { ok: res.filter(r => r.status === 'fulfilled').length, raw: res.reduce((a, r) => a + (r.status === 'fulfilled' ? r.value.length : 0), 0), err: (res.find(r => r.status === 'rejected') || {}).reason?.message };
   for (const r of res) if (r.status === 'fulfilled') for (const q of r.value) {
     if (!okSym(q.sym) || !(q.price >= PRICE_MIN && q.price <= PRICE_MAX) || !(q.vol > 200000)) continue;
-    if (OTC.has(q.exch) || (q.delay != null && q.delay > 0) || (q.type && q.type !== 'EQUITY')) continue;
+    // скенерът пише „закъснение 15–20 мин“ за всички на Nasdaq/NYSE, но минутните графики им са на живо → махаме само OTC (там наистина са със закъснение)
+    if (OTC.has(q.exch) || (q.type && q.type !== 'EQUITY')) continue;
     const m = meta.get(q.sym) || { s: q.sym, n: 0 }; m.n++; m.px = q.price; m.chg = q.chg || 0; m.vol = Math.max(m.vol || 0, q.vol || 0); meta.set(q.sym, m);
   }
   const list = [...meta.values()].sort((a, b) => b.vol - a.vol); list.forEach((m, k) => { m.vr = k + 1; });
