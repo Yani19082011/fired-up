@@ -2,7 +2,7 @@
 // (Yahoo пази минутни данни около 30 дни назад). При отказ на Yahoo за днешния ден — Alpaca IEX.
 const E = require('./_engine');
 module.exports = async (req, res) => {
-  const s = String(req.query.s || '').toUpperCase().replace(/[^A-Z.\-]/g, '').slice(0, 10);
+  const s = String(req.query.s || '').toUpperCase().replace(/[^A-Z.\-=^]/g, '').slice(0, 12);
   if (!s) return res.status(400).json({ error: 'no_symbol' });
   const from = Number(req.query.from) || 0, to = Number(req.query.to) || 0;
   try {
@@ -14,8 +14,8 @@ module.exports = async (req, res) => {
       const r = d?.chart?.result?.[0]; if (!r) throw new Error('yahoo empty');
       bars = E.ybars(r);
     } else {
-      if (/-USD$/.test(s)) { // крипто: денят никога не свършва → последните 8 часа (Coinbase на живо; ако го няма там — Yahoo)
-        try { bars = await require('./_cb').cbBars(s, Date.now() - 8 * 3600e3); } catch (e) { bars = null; }
+      if (/-USD$|=/.test(s)) { // крипто, фючърси (NQ=F…) и валути (EURUSD=X): денонощни → последните 8 часа (крипто от Coinbase, ако може)
+        bars = null; if (/-USD$/.test(s)) try { bars = await require('./_cb').cbBars(s, Date.now() - 8 * 3600e3); } catch (e) { bars = null; }
         if (!bars) {
         const d = await E.yget(`/v8/finance/chart/${encodeURIComponent(s)}?interval=1m&period1=${Math.floor((Date.now() - 8 * 3600e3) / 1000)}&period2=${Math.ceil(Date.now() / 1000) + 60}`);
         const r = d?.chart?.result?.[0]; if (!r) throw new Error('yahoo empty'); bars = E.ybars(r);

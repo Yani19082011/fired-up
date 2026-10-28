@@ -1,5 +1,5 @@
 // Fired Up — ДЕСКЪТ. Шест агента търгуват заедно с една сметка ($10 000 фалшиви пари, истински цени).
-// Търгуват каквото намерят: акции ($1–20), крипто (Bitcoin, Ethereum… 24/7) и суровини чрез борсовите им фондове (злато, петрол…).
+// Търгуват каквото намерят: акции ($1–20), крипто (24/7), индекси (US Tech 100…), злато (24/7), суровини (сребро, петрол… чрез фондовете им) и валути (EUR/USD…, 24/5) — без ливъридж, само с цени на живо.
 //   Scout     — следи пазарите за големи движения (всяка минута)
 //   News      — открива ЗАЩО се движи (новините в Yahoo Finance; Finnhub по желание)
 //   Sentiment — какво говорят хората (StockTwits; ако не отговори — тонът на новините)
@@ -29,6 +29,7 @@ const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
 const GROQ = process.env.GROQ_API_KEY || '', GEMINI = process.env.GEMINI_API_KEY || '', FINNHUB = process.env.FINNHUB_KEY || '';
 const r2 = n => Math.round(n * 100) / 100, r4 = n => Math.round(n * 10000) / 10000, r6 = n => Math.round(n * 1e6) / 1e6;
 const pxF = n => '$' + (n >= 1000 ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : n < 1 ? n.toFixed(4) : n.toFixed(2));
+const pxS = (sym, n) => FX[sym] ? n.toFixed(n < 10 ? 5 : 3) : pxF(n); // валутите — без $
 const money = n => (n < 0 ? '−$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const sgnM = n => (n >= 0 ? '+' : '−') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pctF = n => (n >= 0 ? '+' : '−') + Math.abs(n).toFixed(1).replace('.', ',') + '%';
@@ -55,11 +56,31 @@ const BACKUP = ['PLUG', 'SNDL', 'BBAI', 'SOUN', 'GSAT', 'OPEN', 'CLOV', 'NIO', '
   'F', 'NOK', 'LCID', 'RIVN', 'AAL', 'JBLU', 'WULF', 'MARA', 'RIOT', 'CLSK', 'HUT', 'IREN', 'RGTI', 'QBTS', 'QUBT', 'KULR', 'LUNR', 'SPCE', 'JOBY', 'BLNK', 'CHPT', 'EVGO',
   'SNAP', 'PTON', 'AMC', 'BB', 'VALE', 'ITUB', 'BBD', 'ABEV', 'KGC', 'BTG', 'NGD', 'AG', 'HL', 'CDE', 'EGO', 'IAG', 'UEC', 'UUUU', 'DNN', 'NXE', 'TELL', 'KOS', 'TDOC', 'WBD',
   'LYFT', 'AUR', 'OUST', 'MVIS', 'NVTS', 'WOLF', 'SABR', 'BTBT', 'GPRO', 'ATAI', 'OCGN', 'NVAX', 'SAVA', 'CAN', 'MNMD', 'LAC', 'PLTK', 'AMCR', 'CCL', 'NCLH'];
-const clsOf = s => CRYPTO[s] ? 'crypto' : CMDTY[s] ? 'cmdty' : 'stock';
-const CLS_BG = { stock: 'Акция', crypto: 'Крипто', cmdty: 'Суровина' };
-const disp = s => CRYPTO[s] ? s.replace('-USD', '') : s;
-const nameOf = s => CRYPTO[s] ? CRYPTO[s][0] : CMDTY[s] ? `${CMDTY[s][0]} (${s})` : s;
-const MIN_RISK = { stock: 0.015, crypto: 0.01, cmdty: 0.004 }; // при крипто стопът е поне 1% → целта поне +2%, иначе таксите (0,5% общо) изяждат печалбата
+// индекси и злато като CFD (Trading 212 / eToro), без ливъридж. Само източници НА ЖИВО:
+// фючърсите в Yahoo (NQ=F, GC=F…) са със закъснение 10 мин → индексите са по истинския индекс (в часовете на борсата),
+// а златото — по PAXG (токен, обезпечен с физическо злато) от Coinbase, 24/7. [име, кратко, k, ключови думи, търсене на новини, вид]
+const FUT = {
+  '^NDX': ['US Tech 100', 'US100', 0.12, /nasdaq|tech stocks|\bNDX\b/i, 'Nasdaq 100', 'idx'], '^GSPC': ['US 500', 'US500', 0.1, /S&P 500|\bS&P\b|wall street|stock market/i, 'S&P 500', 'idx'],
+  '^DJI': ['Wall St 30', 'US30', 0.1, /\bdow\b|dow jones/i, 'Dow Jones', 'idx'], 'PAXG-USD': ['Злато', 'GOLD', 0.12, /\bgold\b/i, 'gold price', 'gold'],
+};
+// валути (форекс) — 24/5; [име, k, ключови думи, търсене]
+const FX = {
+  'EURUSD=X': ['EUR/USD', 0.05, /\beuro\b|EUR\/USD|\bECB\b/i, 'EUR/USD'], 'GBPUSD=X': ['GBP/USD', 0.06, /pound|sterling|GBP|Bank of England/i, 'GBP/USD'],
+  'USDJPY=X': ['USD/JPY', 0.06, /\byen\b|JPY|Bank of Japan|\bBOJ\b/i, 'USD/JPY'], 'AUDUSD=X': ['AUD/USD', 0.07, /aussie|australian dollar|\bAUD\b|\bRBA\b/i, 'AUD/USD'],
+  'USDCAD=X': ['USD/CAD', 0.05, /loonie|canadian dollar|\bCAD\b|Bank of Canada/i, 'USD/CAD'], 'USDCHF=X': ['USD/CHF', 0.05, /swiss franc|\bCHF\b|\bSNB\b/i, 'USD/CHF'],
+  'NZDUSD=X': ['NZD/USD', 0.07, /kiwi|new zealand dollar|\bNZD\b|RBNZ/i, 'NZD/USD'], 'EURJPY=X': ['EUR/JPY', 0.07, /\beuro\b|\byen\b|EUR\/JPY/i, 'EUR/JPY'],
+  'GBPJPY=X': ['GBP/JPY', 0.08, /pound|\byen\b|GBP\/JPY/i, 'GBP/JPY'],
+};
+const clsOf = s => CRYPTO[s] ? 'crypto' : FUT[s] ? FUT[s][5] : FX[s] ? 'fx' : CMDTY[s] ? 'cmdty' : 'stock';
+const ROUND_CLOCK = new Set(['crypto', 'gold', 'fx']); // не чакат борсовия ден на акциите
+const kOf = s => CRYPTO[s] ? CRYPTO[s][1] : FUT[s] ? FUT[s][2] : FX[s] ? FX[s][1] : CMDTY[s] ? CMDTY[s][1] : 1;
+const kwOf = s => CRYPTO[s] ? CRYPTO[s][2] : FUT[s] ? FUT[s][3] : FX[s] ? FX[s][2] : CMDTY[s] ? CMDTY[s][2] : null;
+const etDow = ms => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' }).format(new Date(ms)));
+function fxOpen(ms) { const d = etDow(ms), m = H.etParts(ms).min; if (d === 6) return false; if (d === 0) return m >= 17 * 60 + 5; if (d === 5) return m < 16 * 60 + 55; return true; } // форекс: нед. 17:00 – пет. 17:00 НЙ
+const CLS_BG = { stock: 'Акция', crypto: 'Крипто', cmdty: 'Суровина', idx: 'Индекс', gold: 'Суровина', fut: 'Суровина', fx: 'Валута' };
+const disp = s => CRYPTO[s] ? s.replace('-USD', '') : FUT[s] ? FUT[s][1] : FX[s] ? FX[s][0] : s;
+const nameOf = s => CRYPTO[s] ? CRYPTO[s][0] : FUT[s] ? FUT[s][0] : FX[s] ? FX[s][0] : CMDTY[s] ? `${CMDTY[s][0]} (${s})` : s;
+const MIN_RISK = { stock: 0.015, crypto: 0.01, cmdty: 0.004, idx: 0.003, gold: 0.004, fut: 0.004, fx: 0.0015 }; // при крипто стопът е поне 1% → целта поне +2%, иначе таксите (0,5% общо) изяждат печалбата
 
 /* ---------------- памет ---------------- */
 async function loadState() { const s = await kv(['GET', KEY]); if (!s) return null; return JSON.parse(s.startsWith('z:') ? zlib.gunzipSync(Buffer.from(s.slice(2), 'base64')).toString() : s); }
@@ -79,6 +100,9 @@ function halfSpread(sym, px, pre) {
   const c = clsOf(sym);
   if (c === 'crypto') return ['BTC-USD', 'ETH-USD'].includes(sym) ? 0.0002 : 0.0008;
   if (c === 'cmdty') return Math.max(0.0003, 0.005 / px);
+  if (c === 'fx') return 0.00005;  // около половин пипс
+  if (c === 'idx') return 0.0001;
+  if (c === 'gold') return 0.00015;
   return Math.max(pre ? 0.005 : 0.002, (pre ? 0.01 : 0.005) / px);
 }
 const buyFee = (sym, gross) => clsOf(sym) === 'crypto' ? gross * CRYPTO_FEE : 0;
@@ -93,8 +117,9 @@ function markets(st, nowMs) {
   const s = st.session; const reg = s ? (s.regStart || s.start) : 0;
   const stock = !!s && nowMs >= s.start && nowMs < s.end && st.dayDone !== st.day;
   const cmdty = !!s && nowMs >= reg && nowMs < s.end && st.dayDone !== st.day;
-  return { stock, cmdty, crypto: true, reg,
-    canEnter: c => c === 'crypto' ? true : c === 'cmdty' ? cmdty && nowMs >= reg + 10 * 60000 && nowMs < s.end - 30 * 60000 : stock && nowMs >= s.start + 5 * 60000 && nowMs < s.end - 30 * 60000 };
+  const fx = fxOpen(nowMs), fxSoon = fx && fxOpen(nowMs + 30 * 60000);
+  return { stock, cmdty, crypto: true, fx, reg,
+    canEnter: c => c === 'crypto' || c === 'gold' ? true : c === 'fx' ? fxSoon : c === 'cmdty' || c === 'idx' ? cmdty && nowMs >= reg + 10 * 60000 && nowMs < s.end - 30 * 60000 : stock && nowMs >= s.start + 5 * 60000 && nowMs < s.end - 30 * 60000 };
 }
 
 /* ---------------- SCOUT: големите движения ---------------- */
@@ -112,12 +137,14 @@ async function scout(st, nowMs, mk) {
   const M = {};
   if (mk.stock) for (const m of st.radar) M[m.s] = { s: m.s, cls: 'stock', k: 1, px: m.px, chg: m.chg || 0, vol: m.vol || 0, chg5: null, chg15: null, pts: null };
   for (const [s, v] of Object.entries(CRYPTO)) M[s] = { s, cls: 'crypto', k: v[1], px: 0, chg: 0, vol: 0, chg5: null, pts: null };
-  if (mk.cmdty) for (const [s, v] of Object.entries(CMDTY)) M[s] = { s, cls: 'cmdty', k: v[1], px: 0, chg: 0, vol: 0, chg5: null, pts: null };
+  M['PAXG-USD'] = { s: 'PAXG-USD', cls: 'gold', k: kOf('PAXG-USD'), px: 0, chg: 0, vol: 0, chg5: null, pts: null };
+  if (mk.cmdty) for (const s of [...Object.keys(CMDTY).filter(x => x !== 'GLD'), '^NDX', '^GSPC', '^DJI']) M[s] = { s, cls: clsOf(s), k: kOf(s), px: 0, chg: 0, vol: 0, chg5: null, pts: null }; // златото е от PAXG
+  if (mk.fx) for (const s of Object.keys(FX)) M[s] = { s, cls: 'fx', k: kOf(s), px: 0, chg: 0, vol: 0, chg5: null, pts: null };
   let live = {}; try { live = await H.ySpark(Object.keys(M)); } catch (e) { live = {}; }
   let n = 0;
   for (const [s, d] of Object.entries(live)) {
     const m = M[s]; if (!m) continue;
-    const from = m.cls === 'crypto' ? nowMs - 12 * 3600e3 : (st.session ? st.session.start : 0) - 60000;
+    const from = ROUND_CLOCK.has(m.cls) ? nowMs - 12 * 3600e3 : (st.session ? st.session.start : 0) - 60000;
     const pts = []; for (let k = 0; k < d.t.length; k++) if (d.c[k] != null && d.t[k] >= from && d.t[k] <= nowMs - 60000) pts.push([d.t[k], d.c[k]]);
     if (!pts.length) continue; n++;
     const last = pts[pts.length - 1][1], b5 = pts[Math.max(0, pts.length - 6)][1], b15 = pts[Math.max(0, pts.length - 16)][1];
@@ -125,7 +152,7 @@ async function scout(st, nowMs, mk) {
     m.px = last; m.chg5 = (last / b5 - 1) * 100; m.chg15 = (last / b15 - 1) * 100; if (pdc) { m.chg = (last / pdc - 1) * 100; m.pdc = pdc; } m.pts = pts;
   }
   ok(st, 'spark', n >= 3, n ? '' : 'груповата заявка не отговори — ползвам скенерите');
-  st.scan = { radar: st.radar.length, crypto: Object.keys(CRYPTO).length, cmdty: mk.cmdty ? Object.keys(CMDTY).length : 0, live: n, t: nowMs };
+  st.scan = { radar: mk.stock ? st.radar.length : 0, crypto: Object.keys(CRYPTO).length, other: Object.values(M).filter(m => ['cmdty', 'idx', 'gold'].includes(m.cls)).length, fx: mk.fx ? Object.keys(FX).length : 0, live: n, t: nowMs };
   st.live = M; // за „сенките“ на пропуснатите идеи и за лентата
   const recent = new Set(st.ideas.filter(i => nowMs - i.t < COOLDOWN * 60000 || ['wait', 'open', 'pending'].includes(i.status)).map(i => i.sym));
   const held = new Set(st.positions.map(p => p.sym));
@@ -167,16 +194,16 @@ function classify(items, nowMs, cls) {
 }
 async function news(st, sym, nowMs) {
   const c = st.news[sym]; if (c && nowMs - c.at < 10 * 60000) return c;
-  const cls = clsOf(sym); const kw = CRYPTO[sym] || CMDTY[sym];
+  const cls = clsOf(sym); const kw = kwOf(sym);
   let items = [];
   try {
-    const q = cls === 'stock' ? sym : cls === 'crypto' ? CRYPTO[sym][0] : sym;
+    const q = cls === 'stock' ? sym : cls === 'crypto' ? CRYPTO[sym][0] : FUT[sym] ? FUT[sym][4] : FX[sym] ? FX[sym][3] : sym;
     const d = await E.yget(`/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=0&newsCount=15&enableFuzzyQuery=false`);
-    items = (d.news || []).filter(n => cls === 'stock' ? ((n.relatedTickers || []).includes(sym) || new RegExp(`\\b${sym}\\b`).test(n.title || '')) : (kw[2].test(n.title || '') || (n.relatedTickers || []).includes(sym)))
+    items = (d.news || []).filter(n => cls === 'stock' ? ((n.relatedTickers || []).includes(sym) || new RegExp(`\\b${sym}\\b`).test(n.title || '')) : (kw.test(n.title || '') || (n.relatedTickers || []).includes(sym)))
       .map(n => ({ title: n.title, pub: n.publisher, t: (n.providerPublishTime || 0) * 1000, link: n.link }));
     if (cls === 'cmdty' && items.length < 2) { // и общите новини за суровината (напр. „gold price“)
       const d2 = await E.yget(`/v1/finance/search?q=${encodeURIComponent(NEWSQ[sym] || CMDTY[sym][0])}&quotesCount=0&newsCount=10`);
-      for (const n of d2.news || []) if (kw[2].test(n.title || '') && !items.some(x => x.title === n.title)) items.push({ title: n.title, pub: n.publisher, t: (n.providerPublishTime || 0) * 1000, link: n.link });
+      for (const n of d2.news || []) if (kw.test(n.title || '') && !items.some(x => x.title === n.title)) items.push({ title: n.title, pub: n.publisher, t: (n.providerPublishTime || 0) * 1000, link: n.link });
     }
     ok(st, 'news', true);
   } catch (e) { ok(st, 'news', false, e.message); }
@@ -196,6 +223,10 @@ async function news(st, sym, nowMs) {
 async function sentiment(st, sym, nowMs, nw) {
   const c = st.sent[sym]; if (c && nowMs - c.at < 10 * 60000) return c;
   let out = null;
+  if (['idx', 'gold', 'fx'].includes(clsOf(sym))) { // StockTwits няма индекси и валути → тонът на новините
+    const tone = nw && nw.cat ? nw.cat.tone : 0; out = { at: nowMs, src: 'новините', n: nw ? nw.items.length : 0, bullPct: tone > 0 ? 70 : tone < 0 ? 30 : 50, hour: 0, hot: false, guess: true, noTw: true };
+    st.sent[sym] = out; return out;
+  }
   try {
     const tw = CRYPTO[sym] ? sym.replace('-USD', '.X') : sym;
     const d = await getJSON(`https://api.stocktwits.com/api/2/streams/symbol/${encodeURIComponent(tw)}.json`, { headers: UA }, 7000);
@@ -212,6 +243,7 @@ async function sentiment(st, sym, nowMs, nw) {
   st.sent[sym] = out; return out;
 }
 function sentTxt(s) {
+  if (s.noTw) return `За индекси, злато и валути StockTwits няма данни — по тона на новините настроението е ${s.bullPct >= 60 ? 'положително' : s.bullPct <= 40 ? 'отрицателно' : 'неутрално'}.`;
   if (s.guess) return `StockTwits не отговори — по тона на новините настроението е ${s.bullPct >= 60 ? 'положително' : s.bullPct <= 40 ? 'отрицателно' : 'неутрално'}.`;
   if (!s.n) return 'Никой не говори за това в StockTwits — тихо е.';
   const mood = s.bullPct == null ? 'без ясна посока' : s.bullPct >= 75 ? `много оптимистично (${s.bullPct}% „купувай“)` : s.bullPct >= 55 ? `оптимистично (${s.bullPct}% „купувай“)` : s.bullPct >= 45 ? `разделено (${s.bullPct}% „купувай“)` : `песимистично (само ${s.bullPct}% „купувай“)`;
@@ -221,13 +253,13 @@ function sentTxt(s) {
 /* ---------------- CHART: вход, стоп, цел ---------------- */
 async function bars(st, sym, sess, nowMs) {
   const cls = clsOf(sym); let arr, ctx = {};
-  if (cls === 'crypto') { // крипто: последните 8 часа (денят при крипто никога не свършва) — направо от Coinbase, ако може
+  if (ROUND_CLOCK.has(cls)) { // крипто, фючърси и валути: последните 8 часа (крипто направо от Coinbase, ако може)
     const L = st.live && st.live[sym];
-    try { arr = await CB.cbBars(sym, nowMs - 8 * 3600e3, nowMs); ctx.pdc = L && L.pdc; ok(st, 'coinbase', true); return { arr, ctx, cls, src: 'Coinbase' }; }
+    if (cls === 'crypto' || cls === 'gold') try { arr = await CB.cbBars(sym, nowMs - 8 * 3600e3, nowMs); ctx.pdc = L && L.pdc; ok(st, 'coinbase', true); return { arr, ctx, cls, src: 'Coinbase' }; }
     catch (e) { if (!CB.NOT.has(sym)) ok(st, 'coinbase', false, e.message); }
     const d = await E.yget(`/v8/finance/chart/${encodeURIComponent(sym)}?interval=1m&period1=${Math.floor((nowMs - 8 * 3600e3) / 1000)}&period2=${Math.ceil(nowMs / 1000) + 60}`);
     const res = d && d.chart && d.chart.result && d.chart.result[0]; if (!res) throw new Error('yahoo empty ' + sym);
-    arr = E.ybars(res); ctx.pdc = res.meta && (res.meta.chartPreviousClose ?? res.meta.previousClose);
+    arr = E.ybars(res); ctx.pdc = (L && L.pdc) || (res.meta && (res.meta.previousClose ?? res.meta.chartPreviousClose));
   } else {
     const r = await E.yIntraday(sym);
     if (!st.daily[sym]) { try { st.daily[sym] = H.dailyCtx(await H.yDaily(sym), sess.start); } catch (e) { st.daily[sym] = {}; } }
@@ -261,11 +293,12 @@ function chartPlan(sym, arr, ctx, nowMs, regStart) {
     liq: cls === 'stock' ? LIQ_SHARE * Math.max(I.avgV[i] || 0, 1) : Infinity, dollarVol: hasVol ? (I.avgV[i] || 0) * px : null, chgDay: ctx.pdc ? r2((px / ctx.pdc - 1) * 100) : null, t: done[i].t, pre: cls === 'stock' && done[i].t < regStart };
 }
 function chartTxt(c) {
+  const P = n => c && c.cls === 'fx' ? n.toFixed(n < 10 ? 5 : 3) : pxF(n);
   if (!c) return 'Още няма достатъчно минути на графиката.';
-  if (c.ready) return `${c.setup}. Вход около ${pxF(c.entry)}, стоп ${pxF(c.stop)} (−${String(c.riskPct).replace('.', ',')}%), цел ${pxF(c.target)} — печалбата е 2 пъти риска.`;
-  if (c.setup === 'Твърде разтеглена') return `Цената е избягала далеч над средната си (${String(c.ext).replace('.', ',')}× обичайното движение). Чакам да се върне към ${pxF(c.entry)}.`;
-  if (c.setup.startsWith('Под')) return `Цената е под средната си (${c.vwapName} ${pxF(c.vwap)}) — продавачите са по-силни. Не е за купуване сега.`;
-  return `Над средната цена е, но няма ясен момент за вход. Ще купя при ново най-високо над ${pxF(c.entry)}.`;
+  if (c.ready) return `${c.setup}. Вход около ${P(c.entry)}, стоп ${P(c.stop)} (−${String(c.riskPct).replace('.', ',')}%), цел ${P(c.target)} — печалбата е 2 пъти риска.`;
+  if (c.setup === 'Твърде разтеглена') return `Цената е избягала далеч над средната си (${String(c.ext).replace('.', ',')}× обичайното движение). Чакам да се върне към ${P(c.entry)}.`;
+  if (c.setup.startsWith('Под')) return `Цената е под средната си (${c.vwapName} ${P(c.vwap)}) — продавачите са по-силни. Не е за купуване сега.`;
+  return `Над средната цена е, но няма ясен момент за вход. Ще купя при ново най-високо над ${P(c.entry)}.`;
 }
 
 /* ---------------- SKEPTIC: спори срещу всяка сделка ---------------- */
@@ -275,7 +308,7 @@ function skeptic(st, idea, nowMs, et, regStart) {
   if (nw && nw.cat.hard) add(`Новината е лоша: ${nw.cat.bg}. След такава новина цената често се срива.`, 5, true);
   if (cls === 'stock' && (H.isHalted(st, idea.sym, nowMs) || (st.halts && st.halts[idea.sym] && nowMs - st.halts[idea.sym].at < 15 * 60000))) add('Борсата току-що я спря заради резки движения — твърде нестабилна е.', 5, true);
   if (st.dayLocked) add(`Декът вече е на −${DAY_LOSS * 100}% за деня. Стига за днес.`, 5, true);
-  const crazy = { stock: 150, crypto: 40, cmdty: 10 }[cls];
+  const crazy = { stock: 150, crypto: 40, cmdty: 10, idx: 5, gold: 6, fut: 8, fx: 2 }[cls];
   if (c && c.chgDay != null && c.chgDay >= crazy) add(`Вече е поскъпнала с ${Math.round(c.chgDay)}% днес. Повечето такива движения свършват с рязко падане — ще сме последните купувачи.`, 5, true);
   if (nw && nw.cat.k === 'none') add(cls === 'stock' ? 'Няма никаква новина. Движение без причина често е помпане — някой купува, за да продаде на нас.' : 'Не намирам новина, която да обяснява движението.', cls === 'stock' ? 2 : 1);
   if (nw && nw.cat.k === 'rsplit') add('Обратно сливане на акции — обикновено е знак за слаба компания.', 2);
@@ -290,8 +323,9 @@ function skeptic(st, idea, nowMs, et, regStart) {
   if (cls === 'crypto' && !['BTC-USD', 'ETH-USD'].includes(idea.sym)) add('Алткойн: таксата на крипто борсата (0,25% на вход и изход) и по-резките движения ядат от печалбата.', 1);
   if (s && !s.guess && s.bullPct != null && s.bullPct >= 90 && s.hot) add(`Всички вече са вътре (${s.bullPct}% „купувай“). Кой ще купува след нас?`, 1);
   if (s && !s.guess && s.bullPct != null && s.bullPct < 40 && s.n >= 10) add(`Хората са песимисти (само ${s.bullPct}% „купувай“).`, 1);
-  if (cls !== 'crypto' && et.min >= 15 * 60) add('Късно е — до затварянето на борсата остава малко време за движение.', 1);
-  if (cls !== 'crypto' && nowMs >= regStart && nowMs < regStart + 10 * 60000) add('Първите 10 минути след отварянето са хаос — цените скачат напосоки.', 1);
+  if (['stock', 'cmdty', 'idx'].includes(cls) && et.min >= 15 * 60) add('Късно е — до затварянето на борсата остава малко време за движение.', 1);
+  if (cls === 'fx' && !fxOpen(nowMs + 90 * 60000)) add('Валутният пазар скоро затваря за уикенда — сделката може да не успее да се развие.', 1);
+  if (['stock', 'cmdty', 'idx'].includes(cls) && nowMs >= regStart && nowMs < regStart + 10 * 60000) add('Първите 10 минути след отварянето са хаос — цените скачат напосоки.', 1);
   if (c && c.pre) add('Премаркет: малко търговия и широк спред.', 1);
   if (cls === 'crypto' && [0, 6].includes(new Date(nowMs).getUTCDay())) add('Уикенд е — по-малко търговия, движенията лесно се обръщат.', 1);
   const today = st.trades.filter(t => nowMs - t.out < 12 * 3600e3);
@@ -339,7 +373,7 @@ const RANK = { BUY: 0, WAIT: 1, SKIP: 2 };
 
 /* ---------------- CHIEF: решава ---------------- */
 function chief(st, idea, sk) {
-  const sc = idea.scout, nw = idea.news, s = idea.sent, c = idea.chart, k = CRYPTO[idea.sym] ? CRYPTO[idea.sym][1] : CMDTY[idea.sym] ? CMDTY[idea.sym][1] : 1;
+  const sc = idea.scout, nw = idea.news, s = idea.sent, c = idea.chart, k = kOf(idea.sym);
   let conv = Math.min(3, ((sc.chg5 || 0) / 2 + sc.chg / 25) / k) + nw.cat.tone + (s.bullPct == null ? 0 : s.bullPct >= 60 ? 1 : s.bullPct < 40 ? -1 : 0) + (c && c.room != null && c.room >= 2 ? 1 : 0) - sk.score * 0.5;
   conv = r2(Math.max(0, Math.min(5, conv)));
   let v = sk.verdict, why;
@@ -402,7 +436,7 @@ async function tick(nowMs = Date.now()) {
   // 2) графики за всичко, което ни трябва: позиции, поръчки, чакащи и новите идеи
   const waiting = st.ideas.filter(i => i.status === 'wait');
   const need = [...new Set([...st.positions.map(p => p.sym), ...st.ideas.filter(i => i.status === 'pending').map(i => i.sym), ...waiting.map(i => i.sym), ...cands.map(c => c.s)])]
-    .filter(s => clsOf(s) === 'crypto' || S); // акциите и фондовете — само когато има борсов ден
+    .filter(s => ROUND_CLOCK.has(clsOf(s)) || S); // акциите и фондовете — само когато има борсов ден
   const got = await Promise.allSettled(need.map(s => bars(st, s, S, nowMs)));
   const D = {}; got.forEach((r, k) => { if (r.status === 'fulfilled') D[need[k]] = r.value; });
   ok(st, 'chart', !need.length || Object.keys(D).length >= need.length / 2, 'Yahoo не даде графики');
@@ -418,18 +452,18 @@ async function tick(nowMs = Date.now()) {
     const nb = d && d.arr.find(b => b.t > o.t && b.t <= nowMs - 60000);
     if (!nb) { if (nowMs - o.t > 4 * 60000) { idea.status = 'expired'; say(st, nowMs, 'chief', `Поръчката за ${disp(idea.sym)} не се изпълни за 3 минути — отказваме се.`, idea.id); } continue; }
     const pre = clsOf(idea.sym) === 'stock' && nb.t < regStart, fill = nb.o * (1 + halfSpread(idea.sym, nb.o, pre));
-    if (fill > o.limit) { idea.status = 'expired'; say(st, nb.t, 'chief', `${disp(idea.sym)} отвори на ${pxF(nb.o)}, над лимита ни ${pxF(o.limit)}. Не гоним — отказваме се.`, idea.id); note(st, 'skip', `⛔ ${disp(idea.sym)}: не купихме`, `Цената избяга над лимита ${pxF(o.limit)}.`, idea.id); continue; }
+    if (fill > o.limit) { idea.status = 'expired'; say(st, nb.t, 'chief', `${disp(idea.sym)} отвори на ${pxS(idea.sym, nb.o)}, над лимита ни ${pxS(idea.sym, o.limit)}. Не гоним — отказваме се.`, idea.id); note(st, 'skip', `⛔ ${disp(idea.sym)}: не купихме`, `Цената избяга над лимита ${pxS(idea.sym, o.limit)}.`, idea.id); continue; }
     const eq = equity(st), cls = clsOf(idea.sym), feeK = cls === 'crypto' ? 1 + CRYPTO_FEE : 1;
     let qty = Math.min(eq * o.sizePct, st.cash) / (fill * feeK);
     qty = Math.min(qty, RISK_PER_TRADE * eq / Math.max(fill - o.stop, fill * 0.004), o.liq || Infinity);
-    qty = cls === 'crypto' ? Math.floor(qty * 1e6) / 1e6 : Math.floor(qty);
+    qty = cls === 'crypto' ? Math.floor(qty * 1e6) / 1e6 : ['idx', 'gold', 'fx'].includes(cls) ? Math.floor(qty * 1e4) / 1e4 : Math.floor(qty);
     if (!(qty > 0) || qty * fill < 10) { idea.status = 'expired'; say(st, nb.t, 'chief', `${disp(idea.sym)}: твърде малко се търгува, за да влезем с реална сума.`, idea.id); continue; }
     const fee = buyFee(idea.sym, qty * fill); st.cash -= qty * fill + fee;
     const risk = Math.max(fill - o.stop, fill * MIN_RISK[cls]);
     const p = { id: 'p' + nb.t.toString(36) + disp(idea.sym), idea: idea.id, sym: idea.sym, cls, qty, entry: r6(fill), t: nb.t, stop: r6(fill - risk), stop0: r6(fill - risk), target: r6(fill + 2 * risk), risk: r6(risk), feeIn: r2(fee), last: fill, peak: fill, lastT: nb.t };
     st.positions.push(p); idea.status = 'open'; idea.pos = p.id;
-    say(st, nb.t, 'chief', `Купихме ${qtyF(qty)} ${disp(idea.sym)} по ${pxF(fill)} (${money(qty * fill)}${fee ? `, такса ${money(fee)}` : ''}). Стоп ${pxF(p.stop)}, цел ${pxF(p.target)}.`, idea.id);
-    note(st, 'buy', `🟢 КУПИХМЕ ${disp(idea.sym)}`, `${qtyF(qty)} по ${pxF(fill)} · ${money(qty * fill)} · стоп ${pxF(p.stop)} · цел ${pxF(p.target)}`, idea.id);
+    say(st, nb.t, 'chief', `Купихме ${qtyF(qty)} ${disp(idea.sym)} по ${pxS(idea.sym, fill)} (${money(qty * fill)}${fee ? `, такса ${money(fee)}` : ''}). Стоп ${pxS(p.sym, p.stop)}, цел ${pxS(p.sym, p.target)}.`, idea.id);
+    note(st, 'buy', `🟢 КУПИХМЕ ${disp(idea.sym)}`, `${qtyF(qty)} по ${pxS(idea.sym, fill)} · ${money(qty * fill)} · стоп ${pxS(p.sym, p.stop)} · цел ${pxS(p.sym, p.target)}`, idea.id);
   }
 
   // 4) управление на позициите (всяка минута, по минутните свещи)
@@ -441,7 +475,8 @@ async function tick(nowMs = Date.now()) {
       if (p.cls === 'stock' && H.isHalted(st, p.sym, b.t)) continue; // спряна — не може да се продаде
       const pre = p.cls === 'stock' && b.t < regStart, sp = halfSpread(p.sym, b.o, pre);
       if (p.exitNext) { closePos(st, p, b.o * (1 - sp), b.t, p.exitNext); break; }
-      if (p.cls !== 'crypto' && S && b.t >= S.end - 5 * 60000) { closePos(st, p, b.c * (1 - sp), b.t, 'eod'); break; }
+      if (['stock', 'cmdty', 'idx'].includes(p.cls) && S && b.t >= S.end - 5 * 60000) { closePos(st, p, b.c * (1 - sp), b.t, 'eod'); break; }
+      if (p.cls === 'fx' && !fxOpen(b.t + 6 * 60000)) { closePos(st, p, b.c * (1 - sp), b.t, 'eod'); break; } // преди уикенда
       if (!pre && b.l <= p.stop) { closePos(st, p, Math.min(p.stop, b.o) * (1 - sp), b.t, p.stop >= p.entry ? 'be' : 'stop'); break; }
       if (b.h >= p.target) { closePos(st, p, Math.max(p.target, b.o), b.t, 'target'); break; }
       if (pre && b.c <= p.stop) { p.exitNext = 'stop'; continue; }
@@ -465,7 +500,7 @@ async function tick(nowMs = Date.now()) {
   for (const c of cands) {
     const cls = c.cls;
     const idea = { id: 'i' + nowMs.toString(36) + disp(c.s), sym: c.s, cls, t: nowMs, status: 'new', scout: { px: r6(c.px), chg: r2(c.chg), chg5: c.chg5 != null ? r2(c.chg5) : null, chg15: c.chg15 != null ? r2(c.chg15) : null, vol: c.vol }, log: [] };
-    idea.scout.txt = `${nameOf(c.s)} (${CLS_BG[cls].toLowerCase()}) се движи: ${pctF(c.chg)} ${cls === 'crypto' ? 'за денонощието' : 'днес'}` + (c.chg5 != null ? `, ${pctF(c.chg5)} за последните 5 минути` : '') + (cls === 'stock' && c.vol ? `, обем ${(c.vol / 1e6).toFixed(1).replace('.', ',')} млн. акции` : '') + '.';
+    idea.scout.txt = `${nameOf(c.s)} (${CLS_BG[cls].toLowerCase()}) се движи: ${pctF(c.chg)} ${['stock', 'cmdty', 'idx'].includes(cls) ? 'днес' : 'от вчерашното затваряне'}` + (c.chg5 != null ? `, ${pctF(c.chg5)} за последните 5 минути` : '') + (cls === 'stock' && c.vol ? `, обем ${(c.vol / 1e6).toFixed(1).replace('.', ',')} млн. акции` : '') + '.';
     st.ideas.unshift(idea); st.stats.scout++;
     say(st, nowMs, 'scout', idea.scout.txt + ' Подавам на деска.', idea.id);
     await debate(st, idea, nowMs, et, regStart, D[c.s]);
@@ -485,7 +520,7 @@ async function tick(nowMs = Date.now()) {
   }
   // 7) „сенките“: какво щеше да стане с пропуснатите идеи (за да видим дали Скептикът е прав)
   shadows(st, nowMs);
-  if (S && nowMs >= S.end + 60000 && st.dayDone !== st.day && !st.positions.some(p => p.cls !== 'crypto')) { st.dayDone = st.day; summary(st, nowMs); }
+  if (S && nowMs >= S.end + 60000 && st.dayDone !== st.day && !st.positions.some(p => ['stock', 'cmdty', 'idx'].includes(p.cls))) { st.dayDone = st.day; summary(st, nowMs); }
   return finish(st, nowMs);
 }
 function act(st, idea, nowMs, first) {
@@ -494,8 +529,8 @@ function act(st, idea, nowMs, first) {
   const txt = idea.ai && idea.ai.chief ? idea.ai.chief : ch.why;
   if (v === 'BUY' && idea.chart && idea.chart.ready) {
     idea.status = 'pending'; st.stats.buy++;
-    idea.order = { t: idea.chart.t, limit: r6(idea.chart.px * (idea.chart.pre ? 1.02 : idea.cls === 'stock' ? 1.01 : 1.003)), stop: idea.chart.stop, sizePct: ch.sizePct, liq: idea.chart.liq === Infinity ? null : idea.chart.liq };
-    say(st, nowMs, 'chief', `КУПУВАМЕ ${D}. ${txt} Лимит до ${pxF(idea.order.limit)}, ${Math.round(ch.sizePct * 100)}% от сметката.`, idea.id);
+    idea.order = { t: idea.chart.t, limit: r6(idea.chart.px * (idea.chart.pre ? 1.02 : { stock: 1.01, crypto: 1.003, cmdty: 1.002, idx: 1.0015, gold: 1.002, fx: 1.0005 }[idea.cls] || 1.003)), stop: idea.chart.stop, sizePct: ch.sizePct, liq: idea.chart.liq === Infinity ? null : idea.chart.liq };
+    say(st, nowMs, 'chief', `КУПУВАМЕ ${D}. ${txt} Лимит до ${pxS(idea.sym, idea.order.limit)}, ${Math.round(ch.sizePct * 100)}% от сметката.`, idea.id);
   } else if (v === 'WAIT') {
     idea.status = 'wait'; if (first) st.stats.wait++;
     say(st, nowMs, 'chief', `ЧАКАМЕ с ${D}. ${txt}`, idea.id);
@@ -507,7 +542,7 @@ function act(st, idea, nowMs, first) {
     shadowStart(idea, nowMs);
   }
 }
-const WHY = { target: 'целта е достигната', stop: 'стопът се задейства', be: 'цената се върна до входа (стопът беше на входа)', time: `${MAX_HOLD} минути без резултат`, vwap: 'падна под средната цена', news: 'излезе лоша новина', eod: 'краят на борсовия ден' };
+const WHY = { target: 'целта е достигната', stop: 'стопът се задейства', be: 'цената се върна до входа (стопът беше на входа)', time: `${MAX_HOLD} минути без резултат`, vwap: 'падна под средната цена', news: 'излезе лоша новина', eod: 'пазарът затваря (краят на деня или пауза)' };
 function closePos(st, p, px, t, why) {
   const fee = sellFee(p.sym, p.qty, px); const gross = p.qty * px; st.cash += gross - fee;
   const pnl = gross - fee - p.qty * p.entry - (p.feeIn || 0), pct = (px / p.entry - 1) * 100;
@@ -515,7 +550,7 @@ function closePos(st, p, px, t, why) {
   const tr = { id: p.id, idea: p.idea, sym: p.sym, d: disp(p.sym), cls: p.cls, qty: p.qty, entry: p.entry, exit: r6(px), in: p.t, out: t, pnl: r2(pnl), pct: r2(pct), r: r2((px - p.entry) / p.risk), why, stop0: p.stop0, target: p.target, fees: r2(fee + (p.feeIn || 0)) };
   st.trades.unshift(tr); if (st.trades.length > 400) st.trades.length = 400;
   const idea = st.ideas.find(i => i.id === p.idea); if (idea) { idea.status = 'closed'; idea.result = { pnl: tr.pnl, pct: tr.pct, why }; }
-  say(st, t, 'chief', `Продадохме ${disp(p.sym)} по ${pxF(px)} — ${WHY[why]}. Резултат: ${pctF(pct)} (${sgnM(pnl)} след таксите).`, p.idea);
+  say(st, t, 'chief', `Продадохме ${disp(p.sym)} по ${pxS(p.sym, px)} — ${WHY[why]}. Резултат: ${pctF(pct)} (${sgnM(pnl)} след таксите).`, p.idea);
   note(st, 'sell', `${pnl >= 0 ? '🟢' : '🔴'} ПРОДАДОХМЕ ${disp(p.sym)} ${pctF(pct)}`, `${sgnM(pnl)} · ${WHY[why]} · сметка ${money(equity(st))}`, p.idea);
 }
 function shadowStart(idea, nowMs) {
@@ -603,7 +638,7 @@ function view(st, nowMs = Date.now()) {
     stats: { ...st.stats, closed, won, winRate: closed ? Math.round(won / closed * 100) : null, todayTrades: today.length, todayWon: today.filter(t => t.pnl > 0).length, ideasToday: ideasToday.length, byCls,
       bestPct: closed ? Math.max(...st.trades.map(t => t.pct)) : null, worstPct: closed ? Math.min(...st.trades.map(t => t.pct)) : null, avgPct: closed ? r2(st.trades.reduce((a, t) => a + t.pct, 0) / closed) : null },
     health: st.health || {}, ai: GROQ ? 'Groq' : GEMINI ? 'Gemini' : null, finnhub: !!FINNHUB, agents: AGENTS,
-    markets: { crypto: Object.keys(CRYPTO).map(disp), cmdty: Object.entries(CMDTY).map(([s, v]) => `${v[0]} (${s})`) },
+    markets: { crypto: Object.keys(CRYPTO).map(disp), idx: ['^NDX', '^GSPC', '^DJI'].map(nameOf), cmdty: ['Злато (24/7)', ...Object.keys(CMDTY).filter(x => x !== 'GLD').map(nameOf)], fx: Object.keys(FX).map(nameOf), fxOpen: fxOpen(nowMs) },
     rules: { maxPos: MAX_POS, dayLoss: DAY_LOSS * 100, risk: RISK_PER_TRADE * 100, waitMin: WAIT_MIN, maxHold: MAX_HOLD, cryptoFee: CRYPTO_FEE * 100 },
   };
 }
