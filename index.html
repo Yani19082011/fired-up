@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fired Up · Деск</title>
-<meta name="fu-ver" content="42">
+<meta name="fu-ver" content="43">
 <meta name="theme-color" content="#F5F6F8">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon.png">
@@ -233,8 +233,9 @@ const pct1=n=>n==null?'—':(n>0?'+':n<0?'−':'')+Math.abs(n).toFixed(1).replac
 const cls=n=>n>0?'up':n<0?'down':'';
 const col=n=>n>0?'#00A35C':n<0?'#E5484D':'#6B7280';
 const px=n=>'$'+(n>=1000?n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):n<1?n.toFixed(4):n.toFixed(2));
+const pxc=(n,c)=>c==='fx'?n.toFixed(n<10?5:3):px(n);
 const qtyF=q=>q>=100?Math.round(q).toLocaleString('en-US'):String(Math.round(q*1e6)/1e6).replace('.',',');
-const CLS={stock:['АКЦИЯ','#2F5BEA'],crypto:['КРИПТО','#D99A00'],cmdty:['СУРОВИНА','#8B5CF6']};
+const CLS={stock:['АКЦИЯ','#2F5BEA'],crypto:['КРИПТО','#D99A00'],cmdty:['СУРОВИНА','#8B5CF6'],gold:['ЗЛАТО','#B8860B'],idx:['ИНДЕКС','#0E7490'],fx:['ВАЛУТА','#059669']};
 const symBox=(d,c)=>`<span class="sym" style="--c:${(CLS[c]||CLS.stock)[1]}">${esc(d)}<small>${(CLS[c]||CLS.stock)[0]}</small></span>`;
 const nyTime=ms=>new Date(ms).toLocaleTimeString('bg-BG',{timeZone:'America/New_York',hour:'2-digit',minute:'2-digit'});
 const nyDay=ms=>new Date(ms).toLocaleDateString('bg-BG',{timeZone:'America/New_York',weekday:'short',day:'numeric',month:'numeric'}).replace(/\.$/,'');
@@ -344,10 +345,10 @@ function candles(cv,d,o,hx){
 /* ——— начало ——— */
 function verdChip(i){if(i.status==='closed'&&i.result)return `<span class="chip" style="--c:${col(i.result.pct)}">${pct1(i.result.pct)}</span>`;const s=STAT[i.status]||['—','#6B7280'];return `<span class="chip${['skip','expired'].includes(i.status)?' o':''}" style="--c:${s[1]}">${s[0]}</span>`}
 function ideaRow(i){const sub=i.status==='skip'||i.status==='expired'?(i.obj||i.cat||''):i.cat?`Защо: ${i.cat}`:'';
-  return `<button type="button" class="idea" data-idea="${esc(i.id)}">${symBox(i.d||i.sym,i.cls)}<span class="m"><b>${pct1(i.chg)} ${i.cls==='crypto'?'за 24 ч':'днес'}${i.chg5!=null?` · ${pct1(i.chg5)} за 5 мин`:''}</b><span>${esc(sub)}</span></span><span class="r">${verdChip(i)}<small class="mut" style="font-size:11px;font-family:var(--mono)">${nyTime(i.t)}</small></span></button>`}
+  return `<button type="button" class="idea" data-idea="${esc(i.id)}">${symBox(i.d||i.sym,i.cls)}<span class="m"><b>${pct1(i.chg)} ${['stock','cmdty','idx'].includes(i.cls)?'днес':'от вчера'}${i.chg5!=null?` · ${pct1(i.chg5)} за 5 мин`:''}</b><span>${esc(sub)}</span></span><span class="r">${verdChip(i)}<small class="mut" style="font-size:11px;font-family:var(--mono)">${nyTime(i.t)}</small></span></button>`}
 function posCard(p){const fr=Math.max(0,Math.min(1,(p.last-p.stop)/((p.target-p.stop)||1)));
-  return `<button type="button" class="pos" data-idea="${esc(p.idea)}"><span class="a">${symBox(p.d||p.sym,p.cls)}<span class="m"><b>${qtyF(p.qty)} ${p.cls==='crypto'?'бр.':'акции'} · ${px(p.entry)} → ${px(p.last)}</b><span>${p.halted?'⏸ спряна от борсата · ':''}от ${nyTime(p.t)} · ${dur(now()-p.t)}</span></span><span class="pl" style="color:${col(p.pct)}">${pct(p.pct)}<small>${money(p.pnl,true)}</small></span></span>
-    <span class="meter"><i style="left:${(fr*100).toFixed(1)}%"></i></span><span class="ml"><span class="down">стоп ${px(p.stop)}</span><span class="up">цел ${px(p.target)}</span></span></button>`}
+  return `<button type="button" class="pos" data-idea="${esc(p.idea)}"><span class="a">${symBox(p.d||p.sym,p.cls)}<span class="m"><b>${qtyF(p.qty)} ${p.cls==='stock'?'акции':p.cls==='crypto'?'бр.':'ед.'} · ${pxc(p.entry,p.cls)} → ${pxc(p.last,p.cls)}</b><span>${p.halted?'⏸ спряна от борсата · ':''}от ${nyTime(p.t)} · ${dur(now()-p.t)}</span></span><span class="pl" style="color:${col(p.pct)}">${pct(p.pct)}<small>${money(p.pnl,true)}</small></span></span>
+    <span class="meter"><i style="left:${(fr*100).toFixed(1)}%"></i></span><span class="ml"><span class="down">стоп ${pxc(p.stop,p.cls)}</span><span class="up">цел ${pxc(p.target,p.cls)}</span></span></button>`}
 let hHover=null;
 function home(d){
   const tpct=d.totalPct;$('#aPct').innerHTML=`<span style="color:${col(tpct)}">${pct(tpct)}</span>`;
@@ -385,14 +386,14 @@ function trades(d){
   $('#trTiles').innerHTML=[['СДЕЛКИ',`${S.closed}`],['УСПЕХ',S.winRate==null?'—':`${S.winRate}%`],['СРЕДНО НА СДЕЛКА',S.avgPct==null?'—':`<span style="color:${col(S.avgPct)}">${pct(S.avgPct)}</span>`],['НАЙ-ДОБРА / ЛОША',S.bestPct==null?'—':`<span class="up">${pct1(S.bestPct)}</span> <small>/</small> <span class="down">${pct1(S.worstPct)}</span>`],...Object.entries(S.byCls||{}).map(([c,v])=>[(CLS[c]||CLS.stock)[0],`<span style="color:${col(v.pnl)}">${money(v.pnl,true)}</span> <small>${v.won}/${v.n} печ.</small>`])].map(([k,v])=>`<div class="tile"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
   document.querySelectorAll('#trF button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tf2===trF)));
   $('#trN').textContent=`сметка ${money(d.equity)}`;
-  if(trF==='trades'){$('#trList').innerHTML=d.trades.map(t=>`<button type="button" class="tr" data-idea="${esc(t.idea)}"><span class="bs"><i style="background:#00A35C">B</i><em></em><i style="background:#E5484D">S</i></span><span class="m"><b>${esc(t.d||t.sym)} · ${WHY[t.why]||t.why}</b><span>${(CLS[t.cls]||CLS.stock)[0].toLowerCase()} · ${nyDay(t.in)} · ${nyTime(t.in)}→${nyTime(t.out)} · ${qtyF(t.qty)} бр. · ${px(t.entry)} → ${px(t.exit)}</span></span><span class="p" style="color:${col(t.pct)}">${pct(t.pct)}<small>${money(t.pnl,true)}</small></span></button>`).join('')||'<div class="empty">Още няма затворени сделки.</div>';return}
+  if(trF==='trades'){$('#trList').innerHTML=d.trades.map(t=>`<button type="button" class="tr" data-idea="${esc(t.idea)}"><span class="bs"><i style="background:#00A35C">B</i><em></em><i style="background:#E5484D">S</i></span><span class="m"><b>${esc(t.d||t.sym)} · ${WHY[t.why]||t.why}</b><span>${(CLS[t.cls]||CLS.stock)[0].toLowerCase()} · ${nyDay(t.in)} · ${nyTime(t.in)}→${nyTime(t.out)} · ${qtyF(t.qty)} бр. · ${pxc(t.entry,t.cls)} → ${pxc(t.exit,t.cls)}</span></span><span class="p" style="color:${col(t.pct)}">${pct(t.pct)}<small>${money(t.pnl,true)}</small></span></button>`).join('')||'<div class="empty">Още няма затворени сделки.</div>';return}
   const L=d.ideas.filter(i=>trF==='ideas'||i.status==='skip'||i.status==='expired');
   $('#trList').innerHTML=L.map(i=>{let extra='';if(i.shadow)extra=i.shadow.out==='stop'?' · ✓ щеше да е загуба':i.shadow.out==='target'?' · ✗ щеше да е печалба':'';return ideaRow({...i,obj:(i.obj||i.cat||'')+extra})}).join('')||'<div class="empty">Няма.</div>';
 }
 
 /* ——— екипът ——— */
 const ROLE={
-  scout:'Всяка минута сканира три пазара: до 120 акции от $1 до $20, 15 криптовалути (24/7) и 10 суровини чрез борсовите им фондове (злато, сребро, петрол, газ…). Търси големи движения — при акциите поне +10% за деня и рязко качване за 5 минути; при Bitcoin и златото прагът е по-нисък, защото мърдат по-малко.',
+  scout:'Всяка минута сканира всичко с цени на живо: до 120 акции от $1 до $20, индексите US Tech 100, US 500 и Wall St 30, сребро, петрол, газ, мед, платина (чрез фондовете им) — в часовете на борсата; злато и 15 криптовалути — 24/7; 9 валутни двойки (EUR/USD, USD/JPY…) — от неделя вечер до петък вечер. Търси големи движения; при индексите, златото и валутите прагът е много по-нисък, защото мърдат по-малко.',
   news:'Търси новините за акцията от последните 36 часа и казва ЗАЩО се движи: одобрение от FDA, договор, отчет… или че няма новина. Лошите новини (продажба на нови акции, фалит) са червен флаг.',
   sentiment:'Проверява какво пишат хората в StockTwits: колко поста има, колко са от последния час и колко са „купувай“ срещу „продавай“.',
   chart:'Гледа минутната графика и избира точен вход, стоп (докъде търпим загуба) и цел (2 пъти риска). Казва и кога акцията е избягала твърде високо, за да я гоним.',
@@ -410,7 +411,8 @@ function team(d){
     <div><span>AI (${d.ai||'няма ключ'})</span>${d.ai?ok('ai'):'<b class="mut">изключен</b>'}</div></div>
     ${d.ai?'':`<p class="mut" style="font-size:12.5px;margin:10px 0 0">Без AI ключ всичко работи по правила. С безплатен ключ от Groq или Google Gemini Скептикът и Шефът пишат истински аргументи на български. Ключът се слага във Vercel → Settings → Environment Variables като <b>GROQ_API_KEY</b> или <b>GEMINI_API_KEY</b>.</p>`}</div>
   <div class="card note"><b>Правилата — като с истински пари</b><ul style="padding-left:18px;margin:8px 0 0">
-    <li>Сметка ${money0(d.startCash)} фалшиви пари, истински цени. Търгува акции от $1 до $20 (без OTC), крипто 24/7 и суровини чрез фондовете им (ETF) — така ги купува обикновен човек с истински пари.</li>
+    <li>Сметка ${money0(d.startCash)} фалшиви пари, истински цени — само източници НА ЖИВО. Търгува акции от $1 до $20 (без OTC), крипто, индекси, злато, суровини и валути. Индексите, златото и валутите — като CFD при Trading 212: без комисиона, плаща се спредът, без ливъридж.</li>
+    <li>Фючърсите (NQ, GC…) не се ползват: безплатните им цени са с 10 мин закъснение. Затова US Tech 100 е по истинския индекс (в часовете на борсата), а златото — по PAXG (токен с физическо злато, 24/7).</li>
     <li>Крипто: такса ${String(d.rules.cryptoFee).replace('.',',')}% при покупка и при продажба (като на крипто борса), купува и части от монета. Акции и фондове: без комисиона, само регулаторните такси.</li>
     <li>Поръчката е лимитна и се изпълнява на следващата минута — ако цената избяга над лимита, не купуваме.</li>
     <li>Плащаме спреда и таксите на SEC/FINRA при продажба. Не купуваме повече от 10% от обема за минута.</li>
@@ -444,7 +446,7 @@ function ideaPage(refresh){
   const log=(I.log||[]).map(l=>`<li>${nyTime(l.t)} — <b style="color:${(VERD[l.v]||['',''])[1]}">${(VERD[l.v]||[l.v])[0]}</b>: ${esc(l.why)}</li>`).join('');
   const convP=Math.max(0,Math.min(100,(ch.conv||0)/5*100));
   pg.innerHTML=`<div class="wrap">
-    <div class="ph"><button type="button" class="back" data-close aria-label="Назад">${BACK}</button><span class="t"><b>${esc(I.name||I.sym)}</b><span>${(CLS[I.cls]||CLS.stock)[0].toLowerCase()} · ${tlabel(I.t)} · ${pct1(I.scout.chg)} ${I.cls==='crypto'?'за 24 ч':'днес'}</span></span><span class="chip" style="--c:${st[1]}">${st[0]}</span></div>
+    <div class="ph"><button type="button" class="back" data-close aria-label="Назад">${BACK}</button><span class="t"><b>${esc(I.name||I.sym)}</b><span>${(CLS[I.cls]||CLS.stock)[0].toLowerCase()} · ${tlabel(I.t)} · ${pct1(I.scout.chg)} ${['stock','cmdty','idx'].includes(I.cls)?'днес':'от вчера'}</span></span><span class="chip" style="--c:${st[1]}">${st[0]}</span></div>
     ${res}
     <div class="card" style="margin-top:12px;padding:10px">
       <canvas class="chart" id="iChart" style="height:250px" aria-label="Графика на ${esc(I.sym)}"></canvas>
