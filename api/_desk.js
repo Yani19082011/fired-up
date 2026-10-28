@@ -53,7 +53,7 @@ function genTxt(g0) {
 }
 const GP = st => ({ ...GEN0, ...((st.gen && st.gen.p) || {}), ...(process.env.DESK_STRAT ? { strat: process.env.DESK_STRAT } : {}) }); // DESK_STRAT — само за тестове
 const NEW_PER_TICK = 3;            // нови идеи за обсъждане на минута
-const WAIT_MIN = 30;               // колко минути чака една идея, преди да се откаже
+const WAIT_MIN = 5;                // чакаща идея: ако за 5 минути не дойде добър вход — отказ (не гоним стари идеи)
 const MAX_HOLD = 90;               // по подразбиране: най-много 90 минути в сделка
 const COOLDOWN = 45;               // същото нещо не се предлага пак до 45 минути
 const LIQ_SHARE = 0.1;             // при акциите: не купуваме повече от 10% от средния минутен обем
